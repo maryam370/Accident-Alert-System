@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:accident_alert_system/user/info_input.dart';
+import 'package:crypto/crypto.dart'; // for SHA256
+import 'dart:convert'; // for utf8.encode
+
+
 class RegisterPage extends StatefulWidget {
   @override
   _RegisterPageState createState() => _RegisterPageState();
@@ -30,71 +34,81 @@ class _RegisterPageState extends State<RegisterPage> {
 
   // Register user
   void registerUser(BuildContext context) async {
-    if (_formKey.currentState!.validate()) {
+  if (_formKey.currentState!.validate()) {
+    setState(() {
+      _isLoading = true; // Show loading indicator
+    });
+
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+    final name = nameController.text.trim();
+
+    // Check if passwords match
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Passwords do not match')),
+      );
       setState(() {
-        _isLoading = true; // Show loading indicator
+        _isLoading = false; // Hide loading indicator
+      });
+      return;
+    }
+
+    // Check if email is already in use
+    bool emailExists = await checkIfEmailExists(email);
+    if (emailExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email is already in use.')),
+      );
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
+      return;
+    }
+
+    try {
+      // Firebase Authentication: Create user
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Hash the password before saving it to Firestore
+      final bytes = utf8.encode(password); // Convert password to bytes
+      final digest = sha256.convert(bytes); // Hash the password using SHA-256
+
+      // Save additional user data to Firestore (excluding the password)
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'email': email,
+        'name': name,
+        'password': digest.toString(), // Save the hashed password
+        'createdAt': DateTime.now(), // Optional: Add a timestamp
       });
 
-      final email = emailController.text.trim();
-      final password = passwordController.text.trim();
-      final confirmPassword = confirmPasswordController.text.trim();
-      final name = nameController.text.trim();
-
-      if (password != confirmPassword) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Passwords do not match')),
-        );
-        setState(() {
-          _isLoading = false; // Hide loading indicator
-        });
-        return;
-      }
-
-      // Check if email is already in use
-      bool emailExists = await checkIfEmailExists(email);
-      if (emailExists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Email is already in use.')),
-        );
-        setState(() {
-          _isLoading = false; // Hide loading indicator
-        });
-        return;
-      }
-
-      try {
-        // Firebase Authentication: Create user
-        final userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(email: email, password: password);
-
-        // Save user data to Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set({
-          'email': email,
-          'name': name,
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration successful!')),
-        );
-        Navigator.pop(context); // Go back to Login Page
-      } on FirebaseAuthException catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Registration failed.')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred. Please try again.')),
-        );
-      } finally {
-        setState(() {
-          _isLoading = false; // Hide loading indicator
-        });
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration successful!')),
+      );
+      Navigator.pop(context); // Go back to Login Page
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Registration failed.')),
+      );
+      print("FirebaseAuthException: ${e.code} - ${e.message}");
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred. Please try again.')),
+      );
+      print("Unexpected error: $e");
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator
+      });
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

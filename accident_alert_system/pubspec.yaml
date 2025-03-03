@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
   firebase_cloud_firestore: any
   firebase_auth: any
+  firebase_core : any
+  crypto: any
+
 
 
 

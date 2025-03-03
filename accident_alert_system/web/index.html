@@ -31,6 +31,29 @@
 
   <title>accident_alert_system</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA70WpmLnDPcF8CBHvNTXOq3BecxXUG9DI",
+  authDomain: "accident-alert-system-30ea4.firebaseapp.com",
+  projectId: "accident-alert-system-30ea4",
+  storageBucket: "accident-alert-system-30ea4.firebasestorage.app",
+  messagingSenderId: "261655854283",
+  appId: "1:261655854283:web:5d66231e48ca78cfe9ef4e",
+  measurementId: "G-LYDLCZ5R07"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
