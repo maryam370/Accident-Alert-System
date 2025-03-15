@@ -1,10 +1,10 @@
+import 'package:accident_alert_system/auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:accident_alert_system/user/info_input.dart';
 import 'package:crypto/crypto.dart'; // for SHA256
 import 'dart:convert'; // for utf8.encode
-
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -19,6 +19,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController nameController = TextEditingController();
 
   bool _isLoading = false; // To show loading state during registration
+  bool _obscurePassword = true; // To toggle password visibility
+  bool _obscureConfirmPassword = true; // To toggle confirm password visibility
 
   // Method to check if the email is already in use
   Future<bool> checkIfEmailExists(String email) async {
@@ -32,8 +34,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  // Register user
-  void registerUser(BuildContext context) async {
+void registerUser(BuildContext context) async {
   if (_formKey.currentState!.validate()) {
     setState(() {
       _isLoading = true; // Show loading indicator
@@ -82,15 +83,21 @@ class _RegisterPageState extends State<RegisterPage> {
           .doc(userCredential.user!.uid)
           .set({
         'email': email,
-        'name': name,
-        'password': digest.toString(), // Save the hashed password
+        'userName': name,
+        'password': digest.toString(),
+        'role': 'user', // Save the hashed password
         'createdAt': DateTime.now(), // Optional: Add a timestamp
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Registration successful!')),
       );
-      Navigator.pop(context); // Go back to Login Page
+
+      // Navigate to InfoInputPage after successful registration
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => InfoInputPage()),
+      );
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Registration failed.')),
@@ -108,7 +115,6 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 }
-
 
   @override
   Widget build(BuildContext context) {
@@ -184,9 +190,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 SizedBox(height: 20),
 
-                // Password TextFormField
+                // Password TextFormField with Toggleable Eye Icon
                 TextFormField(
                   controller: passwordController,
+                  obscureText: _obscurePassword, // Toggle password visibility
                   decoration: InputDecoration(
                     labelText: 'Password',
                     labelStyle: TextStyle(color: Colors.blueAccent),
@@ -195,8 +202,18 @@ class _RegisterPageState extends State<RegisterPage> {
                       borderSide: BorderSide(color: Colors.blueAccent),
                     ),
                     prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.blueAccent,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword; // Toggle visibility
+                        });
+                      },
+                    ),
                   ),
-                  obscureText: true,
                   style: TextStyle(color: Colors.black),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -213,9 +230,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 SizedBox(height: 20),
 
-                // Confirm Password TextFormField
+                // Confirm Password TextFormField with Toggleable Eye Icon
                 TextFormField(
                   controller: confirmPasswordController,
+                  obscureText: _obscureConfirmPassword, // Toggle confirm password visibility
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     labelStyle: TextStyle(color: Colors.blueAccent),
@@ -223,10 +241,19 @@ class _RegisterPageState extends State<RegisterPage> {
                       borderRadius: BorderRadius.circular(10.0),
                       borderSide: BorderSide(color: Colors.blueAccent),
                     ),
-                    prefixIcon:
-                        Icon(Icons.lock_outline, color: Colors.blueAccent),
+                    prefixIcon: Icon(Icons.lock_outline, color: Colors.blueAccent),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.blueAccent,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword; // Toggle visibility
+                        });
+                      },
+                    ),
                   ),
-                  obscureText: true,
                   style: TextStyle(color: Colors.black),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -237,8 +264,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     }
                     return null;
                   },
-                ),               
+                ),
                 SizedBox(height: 30),
+
                 // Register Button
                 Container(
                   width: double.infinity,
@@ -264,13 +292,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 // Already have an account?
                 Center(
                   child: TextButton(
-                   onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => InfoInputPage()),
-  );
-},
-
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginPage()),
+                      );
+                    },
                     child: Text(
                       'Already have an account? Login here',
                       style: TextStyle(color: Colors.blueAccent),
