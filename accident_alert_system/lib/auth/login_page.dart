@@ -1,3 +1,4 @@
+import 'package:accident_alert_system/admin/admin_home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -58,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
                 context, MaterialPageRoute(builder: (_) => AmbulanceHomePage()));
           } else if (role == 'admin') {
             Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => AmbulanceHomePage()));
+                context, MaterialPageRoute(builder: (_) => AdminHomePage()));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text("Role not recognized"),
