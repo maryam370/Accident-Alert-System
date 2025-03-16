@@ -23,6 +23,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        debugShowCheckedModeBanner: false, 
+
+       routes: {
+    '/login': (context) => LoginPage(), 
+  },
       title: 'Flutter Demo',
       home: LoginPage(),
     );

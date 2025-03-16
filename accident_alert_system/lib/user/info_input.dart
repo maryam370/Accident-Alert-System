@@ -101,6 +101,15 @@ class _InfoInputPageState extends State<InfoInputPage> {
       appBar: AppBar(
         title: Text("Enter Your Info"),
         backgroundColor: Colors.blueAccent,
+        actions: [
+    IconButton(
+      icon: Icon(Icons.logout),
+      onPressed: () async {
+        await FirebaseAuth.instance.signOut();
+        Navigator.of(context).pushReplacementNamed('/login'); // Adjust the route accordingly
+      },
+    ),
+  ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

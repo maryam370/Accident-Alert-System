@@ -1,6 +1,7 @@
+import 'package:accident_alert_system/admin/admin_users_page.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminHomePage extends StatefulWidget {
   @override
@@ -8,118 +9,18 @@ class AdminHomePage extends StatefulWidget {
 }
 
 class _AdminHomePageState extends State<AdminHomePage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Controllers for creating accounts
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController phoneNumberController = TextEditingController();
-  final TextEditingController hospitalNameController = TextEditingController();
-  final TextEditingController hospitalTypeController = TextEditingController();
-  final TextEditingController hospitalAddressController = TextEditingController();
-  final TextEditingController emergencyContactController = TextEditingController();
-  final TextEditingController geographicalAreaController = TextEditingController();
-  final TextEditingController policeDepartmentNameController = TextEditingController();
-  final TextEditingController officerInChargeController = TextEditingController();
-  final TextEditingController departmentAddressController = TextEditingController();
-  final TextEditingController regionServedController = TextEditingController();
-  final TextEditingController emsNameController = TextEditingController();
-  final TextEditingController serviceAreaController = TextEditingController();
 
-  String? selectedRole;
+  // Navigation bar state
+  int _currentIndex = 0; // Tracks the current page index
 
-  // Fetch all users from Firestore
-  Future<List<QueryDocumentSnapshot>> fetchUsers() async {
-    final querySnapshot = await _firestore.collection('users').get();
-    return querySnapshot.docs;
-  }
-
-  // Create a new account
-  Future<void> createAccount(BuildContext context) async {
-    if (nameController.text.isEmpty ||
-        emailController.text.isEmpty ||
-        passwordController.text.isEmpty ||
-        selectedRole == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all required fields')),
-      );
-      return;
-    }
-
-    try {
-      // Create user in Firebase Authentication
-      final userCredential = await _auth.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      // Prepare user data based on role
-      Map<String, dynamic> userData = {
-        'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
-        'phoneNumber': phoneNumberController.text.trim(), // Optional
-        'role': selectedRole,
-        'createdAt': DateTime.now(),
-      };
-
-      // Add role-specific fields
-      switch (selectedRole) {
-        case 'Admin':
-          // No additional fields for Admin
-          break;
-        case 'Hospital':
-          userData['hospitalName'] = hospitalNameController.text.trim();
-          userData['hospitalType'] = hospitalTypeController.text.trim();
-          userData['hospitalAddress'] = hospitalAddressController.text.trim();
-          userData['emergencyContactNumber'] = emergencyContactController.text.trim();
-          userData['geographicalArea'] = geographicalAreaController.text.trim();
-          break;
-        case 'Police':
-          userData['policeDepartmentName'] = policeDepartmentNameController.text.trim();
-          userData['officerInCharge'] = officerInChargeController.text.trim();
-          userData['departmentAddress'] = departmentAddressController.text.trim();
-          userData['regionServed'] = regionServedController.text.trim();
-          break;
-        case 'Ambulance/EMS':
-          userData['emsName'] = emsNameController.text.trim();
-          userData['serviceArea'] = serviceAreaController.text.trim();
-          break;
-      }
-
-      // Save user data to Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set(userData);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Account created successfully!')),
-      );
-
-      // Clear form fields
-      nameController.clear();
-      emailController.clear();
-      passwordController.clear();
-      phoneNumberController.clear();
-      hospitalNameController.clear();
-      hospitalTypeController.clear();
-      hospitalAddressController.clear();
-      emergencyContactController.clear();
-      geographicalAreaController.clear();
-      policeDepartmentNameController.clear();
-      officerInChargeController.clear();
-      departmentAddressController.clear();
-      regionServedController.clear();
-      emsNameController.clear();
-      serviceAreaController.clear();
-      setState(() {
-        selectedRole = null;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create account: ${e.toString()}')),
-      );
-    }
-  }
+  // Pages for navigation
+  final List<Widget> _pages = [
+    HomePage(),
+    UsersPage(), // Home page (AdminHomePage content)
+    AlertsPage(), // Alerts page
+    ReportsPage(), // Reports page
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -127,151 +28,204 @@ class _AdminHomePageState extends State<AdminHomePage> {
       appBar: AppBar(
         title: Text('Admin Home Page'),
         backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.of(context).pushReplacementNamed('/login'); // Adjust the route accordingly
+            },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
+      body: _pages[_currentIndex], // Display the current page
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex, // Highlight the current page
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index; // Update the current page index
+          });
+        },
+        type: BottomNavigationBarType.fixed, // Fixed navigation bar
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Alerts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report),
+            label: 'Reports',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Function to get user count for a given role
+  Future<int> _getUserCount(String role) async {
+    final querySnapshot = await _firestore.collection('users').where('role', isEqualTo: role).get();
+    return querySnapshot.docs.length; // Count the number of documents (users)
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          // Row for Hospital and Police cards
+          Row(
             children: [
-              // Form to create a new account
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Create New Account',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 10),
-        
-                      // Common fields for all roles
-                      TextFormField(
-                        controller: nameController,
-                        decoration: InputDecoration(labelText: 'Full Name  '),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Name is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: emailController,
-                        decoration: InputDecoration(labelText: 'Email  '),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Email is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: passwordController,
-                        decoration: InputDecoration(labelText: 'Password '),
-                        obscureText: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Password is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: phoneNumberController,
-                        decoration: InputDecoration(labelText: 'Phone Number (Optional)'),
-                      ),
-        
-                      // Role selection
-                      DropdownButtonFormField<String>(
-                        value: selectedRole,
-                        decoration: InputDecoration(labelText: 'Role  '),
-                        items: ['Admin', 'Hospital', 'Police', 'Ambulance/EMS']
-                            .map((role) => DropdownMenuItem(
-                                  value: role,
-                                  child: Text(role),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedRole = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Role is required';
-                          }
-                          return null;
-                        },
-                      ),
-        
-                      // Role-specific fields
-                      if (selectedRole == 'Hospital') ...[
-                        SizedBox(height: 10),
-                        TextFormField(
-                          controller: hospitalNameController,
-                          decoration: InputDecoration(labelText: 'Hospital Name  '),
-                        ),
-                        TextFormField(
-                          controller: hospitalTypeController,
-                          decoration: InputDecoration(labelText: 'Hospital Type  '),
-                        ),
-                        TextFormField(
-                          controller: hospitalAddressController,
-                          decoration: InputDecoration(labelText: 'Hospital Address  '),
-                        ),
-                        TextFormField(
-                          controller: emergencyContactController,
-                          decoration: InputDecoration(labelText: 'Emergency Contact Number  '),
-                        ),
-                        TextFormField(
-                          controller: geographicalAreaController,
-                          decoration: InputDecoration(labelText: 'Geographical Area  '),
-                        ),
-                      ] else if (selectedRole == 'Police') ...[
-                        SizedBox(height: 10),
-                        TextFormField(
-                          controller: policeDepartmentNameController,
-                          decoration: InputDecoration(labelText: 'Police Department Name  '),
-                        ),
-                        TextFormField(
-                          controller: officerInChargeController,
-                          decoration: InputDecoration(labelText: 'Officer in Charge  '),
-                        ),
-                        TextFormField(
-                          controller: departmentAddressController,
-                          decoration: InputDecoration(labelText: 'Department Address  '),
-                        ),
-                        TextFormField(
-                          controller: regionServedController,
-                          decoration: InputDecoration(labelText: 'Region/Area Served  '),
-                        ),
-                      ] else if (selectedRole == 'Ambulance/EMS') ...[
-                        SizedBox(height: 10),
-                        TextFormField(
-                          controller: emsNameController,
-                          decoration: InputDecoration(labelText: 'EMS Name  '),
-                        ),
-                        TextFormField(
-                          controller: serviceAreaController,
-                          decoration: InputDecoration(labelText: 'Service Area  '),
-                        ),
-                      ],
-        
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () => createAccount(context),
-                        child: Text('Create Account'),
-                      ),
-                    ],
-                  ),
+              Expanded(
+                child: FutureBuilder<int>(
+                  future: _getUserCount('Hospital'),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return _buildCard(
+                      icon: Icons.local_hospital,
+                      title: 'Hospitals',
+                      count: count,
+                      color: Colors.blue,
+                    );
+                  },
                 ),
               ),
-              SizedBox(height: 20),      
+              SizedBox(width: 16),
+              Expanded(
+                child: FutureBuilder<int>(
+                  future: _getUserCount('Police'),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return _buildCard(
+                      icon: Icons.local_police,
+                      title: 'Police',
+                      count: count,
+                      color: Colors.green,
+                    );
+                  },
+                ),
+              ),
             ],
           ),
+          SizedBox(height: 16),
+
+          // Row for Ambulance/EMS and Users cards
+          Row(
+            children: [
+              Expanded(
+                child: FutureBuilder<int>(
+                  future: _getUserCount('Ambulance'),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return _buildCard(
+                      icon: Icons.medical_services,
+                      title: 'Ambulance',
+                      count: count,
+                      color: Colors.orange,
+                    );
+                  },
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: FutureBuilder<int>(
+                  future: _getUserCount('Admin'),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return _buildCard(
+                      icon: Icons.people,
+                      title: 'Users',
+                      count: count,
+                      color: Colors.purple,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+
+          // Row for Total Accidents and Active Accidents cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildCard(
+                  icon: Icons.car_crash,
+                  title: 'Total Accidents',
+                  count: 35, // Placeholder value
+                  color: Colors.red,
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: _buildCard(
+                  icon: Icons.warning,
+                  title: 'Active Accidents',
+                  count: 5, // Placeholder value
+                  color: Colors.amber,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method to build the individual card
+  Widget _buildCard({required IconData icon, required String title, required int count, required Color color}) {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: color),
+            SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Total: $count', // Display the "Total" text with the count
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+
+class AlertsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text('Alerts Page'),
+    );
+  }
+}
+
+class ReportsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text('Reports Page'),
     );
   }
 }

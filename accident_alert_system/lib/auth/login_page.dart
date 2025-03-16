@@ -48,16 +48,16 @@ class _LoginPageState extends State<LoginPage> {
           if (role == 'user') {
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (_) => UserHomePage()));
-          } else if (role == 'police') {
+          } else if (role == 'Police') {
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (_) => PoliceHomePage()));
-          } else if (role == 'hospital') {
+          } else if (role == 'Hospital') {
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (_) => HospitalHomePage()));
-          } else if (role == 'ambulance') {
+          } else if (role == 'Ambulance') {
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (_) => AmbulanceHomePage()));
-          } else if (role == 'admin') {
+          } else if (role == 'Admin') {
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (_) => AdminHomePage()));
           } else {
