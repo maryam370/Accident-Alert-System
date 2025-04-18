@@ -17,20 +17,16 @@ class _UsersPageState extends State<UsersPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController phoneNumberController = TextEditingController();
-  final TextEditingController contactEmailController =
-      TextEditingController(); // New controller for contact email
+  final TextEditingController contactEmailController =TextEditingController(); 
   final TextEditingController hospitalTypeController = TextEditingController();
-  final TextEditingController hospitalAddressController =
-      TextEditingController();
-  final TextEditingController geographicalAreaController =
-      TextEditingController();
-  final TextEditingController departmentAddressController =
-      TextEditingController();
+  final TextEditingController hospitalAddressController =  TextEditingController();
+  final TextEditingController geographicalAreaController =TextEditingController();
+  final TextEditingController departmentAddressController =TextEditingController();
   final TextEditingController regionServedController = TextEditingController();
   final TextEditingController serviceAreaController = TextEditingController();
 
   String? selectedRole;
-  bool _isPasswordVisible = false; // For toggling password visibility
+  bool _isPasswordVisible = false; 
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +35,6 @@ class _UsersPageState extends State<UsersPage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Form to create a new account
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -101,7 +96,7 @@ class _UsersPageState extends State<UsersPage> {
                       TextFormField(
                         controller: passwordController,
                         decoration: InputDecoration(
-                          labelText: 'Password  ',
+                          labelText: 'Password',
                           suffixIcon: IconButton(
                             icon: Icon(
                               _isPasswordVisible
