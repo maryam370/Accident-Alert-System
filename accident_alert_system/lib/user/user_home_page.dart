@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert'; // Add this line
-
+import 'dart:convert';
 
 class UserHomePage extends StatefulWidget {
   @override
@@ -59,7 +59,9 @@ class _HomePageState extends State<HomePage> {
   bool _isMonitoring = false;
   int _count = 0;
   String? _fcmToken;
+  bool _notificationCancelled = false;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -73,82 +75,113 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _setupNotifications() async {
-    // Request permissions
     await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // Get FCM token
     _fcmToken = await _firebaseMessaging.getToken();
     print("FCM Token: $_fcmToken");
 
-    // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Foreground message received');
       _showNotificationDialog(message);
     });
 
-    // Handle when app is opened from terminated state
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null) {
-        _showNotificationDialog(message);
-      }
-    });
-
-    // Handle when app is in background
+    
     FirebaseMessaging.onMessageOpenedApp.listen(_showNotificationDialog);
   }
 
   void _showNotificationDialog(RemoteMessage message) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(message.notification?.title ?? 'Alert'),
-        content: Text(message.notification?.body ?? 'Emergency detected'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      ),
+  context: context,
+  barrierDismissible: false,
+  builder: (context) {
+    Future.delayed(Duration(seconds: 10), () {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); // Close the dialog
+      }
+    });
+
+    return AlertDialog(
+      title: Text('Notification'),
+      content: Text('Do you want to allow this?'),
+      actions: [
+        TextButton(onPressed: () {}, child: Text('Allow')),
+        TextButton(onPressed: () {}, child: Text('Cancel')),
+      ],
     );
   }
+);
 
-Future<void> _sendNotification() async {
-  if (_fcmToken == null) return;
+  }
 
-  const serverUrl = 'http://10.0.2.2:3000/send-notification';
-  
-  try {
-    final response = await http.post(
-      Uri.parse(serverUrl),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode({
-        'token': _fcmToken, 
-        'title': 'Emergency Alert', 
-        'body': 'Accident detected! Help is on the way!'
-      }),
-    );
+  Future<void> _saveAccidentToFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-    if (response.statusCode == 200) {
-      print('Notification sent successfully');
-    } else {
-      print('Failed to send notification');
+      // Get current location (you'll need to implement this)
+      // For now using mock location
+      final location = {'latitude': 37.4219983, 'longitude': -122.084};
+
+      await _firestore.collection('accidents').add({
+        'userId': user.uid,
+        'location': location,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'detected',
+        'severity': 'high', // You can determine this from sensor data
+        'assignedAmbulanceId': '',
+        'assignedHospitalId': '',
+        'assignedPoliceId': '',
+      });
+
+      print('Accident saved to Firestore');
+    } catch (e) {
+      print('Error saving accident: $e');
     }
-  } catch (e) {
-    print('Error sending notification: $e');
   }
-}
 
+  Future<void> _sendNotification() async {
+    if (_fcmToken == null) return;
 
+    const serverUrl = 'http://10.0.2.2:3000/send-notification';
+    
+    try {
+      final response = await http.post(
+        Uri.parse(serverUrl),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          'token': _fcmToken, 
+          'title': 'Emergency Alert', 
+          'body': 'Accident detected! Help is on the way!'
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('Notification sent successfully');
+        
+        // Start 10-second countdown for auto-save if not cancelled
+        _notificationCancelled = false;
+        await Future.delayed(Duration(seconds: 10));
+        
+        if (!_notificationCancelled) {
+          await _saveAccidentToFirestore();
+        }
+      } else {
+        print('Failed to send notification');
+      }
+    } catch (e) {
+      print('Error sending notification: $e');
+    }
+  }
 
   void _startMonitoring() {
     setState(() {
       _isMonitoring = true;
       _count = 0;
+      _notificationCancelled = false;
     });
     _countdownLoop();
   }
@@ -202,7 +235,6 @@ Future<void> _sendNotification() async {
   }
 }
 
-// Placeholder pages
 class HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(child: Text('History Page'));

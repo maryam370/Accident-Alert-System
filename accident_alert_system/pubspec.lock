@@ -28,7 +28,7 @@ packages:
       name: analyzer
       sha256: b652861553cd3990d8ed361f7979dc6d7053a9ac8843fa73820ab68ce5410139
       url: "https://pub.dev"
-    source: hosted
+    source: hostedq
     version: "6.7.0"
   async:
     dependency: transitive
