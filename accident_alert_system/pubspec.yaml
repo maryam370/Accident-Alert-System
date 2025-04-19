@@ -36,7 +36,9 @@ dependencies:
   crypto: any
   cloud_firestore: any
   bcrypt: any
+  http: any
   firebase_database: any
+  firebase_messaging : any
 
   
 
