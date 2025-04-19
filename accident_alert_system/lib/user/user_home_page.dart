@@ -56,6 +56,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _isDialogShowing = false; // Add this flag
   bool _isMonitoring = false;
   int _count = 0;
   String? _fcmToken;
@@ -74,7 +75,7 @@ class _HomePageState extends State<HomePage> {
     await _setupNotifications();
   }
 
-  Future<void> _setupNotifications() async {
+Future<void> _setupNotifications() async {
     await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -86,36 +87,55 @@ class _HomePageState extends State<HomePage> {
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Foreground message received');
-      _showNotificationDialog(message);
-    });
-
-    
-    FirebaseMessaging.onMessageOpenedApp.listen(_showNotificationDialog);
-  }
-
-  void _showNotificationDialog(RemoteMessage message) {
-    showDialog(
-  context: context,
-  barrierDismissible: false,
-  builder: (context) {
-    Future.delayed(Duration(seconds: 10), () {
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop(); // Close the dialog
+      // Only show if not already showing and monitoring
+      if (!_isDialogShowing && _isMonitoring) {
+        _showNotificationDialog(message);
       }
     });
 
-    return AlertDialog(
-      title: Text('Notification'),
-      content: Text('Do you want to allow this?'),
-      actions: [
-        TextButton(onPressed: () {}, child: Text('Allow')),
-        TextButton(onPressed: () {}, child: Text('Cancel')),
-      ],
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessage);
+  }
+  void _handleBackgroundMessage(RemoteMessage message) {
+    // Handle background notification without showing dialog
+    print('App opened from background notification');
+  }
+
+  void _showNotificationDialog(RemoteMessage message) {
+    setState(() => _isDialogShowing = true);
+    _notificationCancelled = false;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        Future.delayed(Duration(seconds: 10), () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          if (!_notificationCancelled) {
+            _saveAccidentToFirestore();
+          }
+          setState(() => _isDialogShowing = false);
+        });
+
+        return AlertDialog(
+          title: Text('Accident Detected!'),
+          content: Text('Emergency services will be notified in 10 seconds unless canceled'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _notificationCancelled = true;
+                Navigator.of(context).pop();
+                setState(() => _isDialogShowing = false);
+              },
+              child: Text('CANCEL'),
+            ),
+          ],
+        );
+      },
     );
   }
-);
 
-  }
 
   Future<void> _saveAccidentToFirestore() async {
     try {
@@ -142,8 +162,7 @@ class _HomePageState extends State<HomePage> {
       print('Error saving accident: $e');
     }
   }
-
-  Future<void> _sendNotification() async {
+ Future<void> _sendNotification() async {
     if (_fcmToken == null) return;
 
     const serverUrl = 'http://10.0.2.2:3000/send-notification';
@@ -161,16 +180,15 @@ class _HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         print('Notification sent successfully');
-        
-        // Start 10-second countdown for auto-save if not cancelled
-        _notificationCancelled = false;
-        await Future.delayed(Duration(seconds: 10));
-        
-        if (!_notificationCancelled) {
-          await _saveAccidentToFirestore();
+        // Only show dialog if not already showing
+        if (!_isDialogShowing) {
+          _showNotificationDialog(RemoteMessage(
+            notification: RemoteNotification(
+              title: 'Emergency Alert',
+              body: 'Accident detected! Help is on the way!',
+            ),
+          ));
         }
-      } else {
-        print('Failed to send notification');
       }
     } catch (e) {
       print('Error sending notification: $e');
