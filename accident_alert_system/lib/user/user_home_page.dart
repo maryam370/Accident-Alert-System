@@ -222,17 +222,84 @@ Future<void> _saveAccidentToFirestore() async {
   void _setupAccidentStatusListener() {
     if (_currentAccidentId == null) return;
 
+    String? lastStatus;
+    
     _accidentStatusSubscription = _firestore
         .collection('accidents')
         .doc(_currentAccidentId)
         .snapshots()
-        .listen((snapshot) {
+        .listen((snapshot) async {
       if (snapshot.exists) {
         final status = snapshot.data()?['status'] ?? 'detected';
-        _showStatusUpdate(status);
-        setState(() {}); // Rebuild UI with new status
+        
+        // Only send notification if status changed
+        if (status != lastStatus) {
+          lastStatus = status;
+          
+          // Update UI
+          _showStatusUpdate(status);
+          setState(() {});
+          
+          // Send push notification for this status update
+          await _sendStatusNotification(status);
+        }
       }
     });
+  }
+  Future<void> _sendStatusNotification(String status) async {
+    if (_fcmToken == null) return;
+
+    const serverUrl = 'http://10.0.2.2:3000/send-notification';
+    
+    try {
+      final response = await http.post(
+        Uri.parse(serverUrl),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          'token': _fcmToken, 
+          'title': _getNotificationTitle(status),
+          'body': _getNotificationBody(status),
+          'data': {
+            'type': 'status_update',
+            'status': status,
+            'accidentId': _currentAccidentId,
+          }
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('Status notification sent: $status');
+      } else {
+        print('Failed to send status notification: ${response.body}');
+      }
+    } catch (e) {
+      print('Error sending status notification: $e');
+    }
+  }
+
+  String _getNotificationTitle(String status) {
+    switch (status) {
+      case 'detected': return 'Accident Reported';
+      case 'ambulance_dispatched': return 'Ambulance Coming';
+      case 'hospital_notified': return 'Hospital Ready';
+      case 'resolved': return 'Case Resolved';
+      default: return 'Status Update';
+    }
+  }
+
+  String _getNotificationBody(String status) {
+    switch (status) {
+      case 'detected': 
+        return 'Emergency services have been notified about your accident.';
+      case 'ambulance_dispatched': 
+        return 'An ambulance is on its way to your location.';
+      case 'hospital_notified': 
+        return 'Nearby hospitals have been prepared for your arrival.';
+      case 'resolved': 
+        return 'Your accident case has been successfully resolved.';
+      default: 
+        return 'Your accident status has been updated.';
+    }
   }
 
   void _showStatusUpdate(String status) {
