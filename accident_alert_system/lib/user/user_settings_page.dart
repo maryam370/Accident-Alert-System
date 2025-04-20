@@ -15,15 +15,17 @@ class _SettingsPageState extends State<SettingsPage> {
   late TextEditingController _emergencyRelationController;
   late TextEditingController _phoneNumberController;
   late TextEditingController _bloodGroupController;
+  late TextEditingController _allergiesController;
   bool _monitoringEnabled = true;
   bool _locationEnabled = true;
   DateTime? _dateOfBirth;
+  List<String> _allergies = [];
 
   // Section visibility toggles
   bool _showPersonalInfo = false;
   bool _showMedicalInfo = false;
   bool _showEmergencyContact = false;
-  bool _showAppSettings = true; // Keep app settings visible by default
+  bool _showAppSettings = true;
   bool _showAbout = false;
 
   @override
@@ -34,6 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _emergencyRelationController = TextEditingController();
     _phoneNumberController = TextEditingController();
     _bloodGroupController = TextEditingController();
+    _allergiesController = TextEditingController();
     _loadUserSettings();
   }
 
@@ -50,16 +53,17 @@ class _SettingsPageState extends State<SettingsPage> {
       final data = doc.data()!;
       setState(() {
         _phoneNumberController.text = data['phoneNumber'] ?? '';
-        _bloodGroupController.text =
-            data['medicalRecords']?['bloodGroup'] ?? '';
-        _emergencyNameController.text =
+        _bloodGroupController.text = data['medicalRecords']?['bloodGroup'] ?? '';
+        _emergencyNameController.text = 
             data['medicalRecords']?['emergencyContact']?['name'] ?? '';
-        _emergencyNumberController.text =
+        _emergencyNumberController.text = 
             data['medicalRecords']?['emergencyContact']?['number'] ?? '';
-        _emergencyRelationController.text =
+        _emergencyRelationController.text = 
             data['medicalRecords']?['emergencyContact']?['relation'] ?? '';
         _dateOfBirth = data['dateOfBirth']?.toDate();
-
+        _allergies = List<String>.from(data['medicalRecords']?['allergies'] ?? []);
+        _allergiesController.text = _allergies.join(', ');
+        
         _loadAppSettings(user.uid);
       });
     }
@@ -159,15 +163,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Medical Information',
                 icon: Icons.medical_services,
                 isExpanded: _showMedicalInfo,
-                onTap: () =>
-                    setState(() => _showMedicalInfo = !_showMedicalInfo),
+                onTap: () => setState(() => _showMedicalInfo = !_showMedicalInfo),
               ),
               if (_showMedicalInfo) ...[
                 SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _bloodGroupController.text.isNotEmpty
-                      ? _bloodGroupController.text
-                      : null,
+                  value: _bloodGroupController.text.isNotEmpty ? _bloodGroupController.text : null,
                   decoration: InputDecoration(
                     labelText: 'Blood Group',
                     border: OutlineInputBorder(),
@@ -179,15 +180,50 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: Text(bloodType),
                           ))
                       .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _bloodGroupController.text = value!;
-                    });
-                  },
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                  onChanged: (value) => setState(() => _bloodGroupController.text = value!),
                 ),
                 SizedBox(height: 16),
+                TextFormField(
+                  controller: _allergiesController,
+                  decoration: InputDecoration(
+                    labelText: 'Allergies (comma separated)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.health_and_safety),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.add),
+                      onPressed: () {
+                        if (_allergiesController.text.isNotEmpty) {
+                          setState(() {
+                            _allergies.add(_allergiesController.text.trim());
+                            _allergiesController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  onChanged: (value) {
+                    if (value.endsWith(',')) {
+                      setState(() {
+                        _allergies.add(value.replaceAll(',', '').trim());
+                        _allergiesController.clear();
+                      });
+                    }
+                  },
+                ),
+                SizedBox(height: 8),
+                if (_allergies.isNotEmpty) ...[
+                  Text('Current Allergies:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _allergies.map((allergy) => Chip(
+                      label: Text(allergy),
+                      deleteIcon: Icon(Icons.close, size: 18),
+                      onDeleted: () => setState(() => _allergies.remove(allergy)),
+                    )).toList(),
+                  ),
+                  SizedBox(height: 16),
+                ],
               ],
 
               // Emergency Contact Section
@@ -322,7 +358,7 @@ class _SettingsPageState extends State<SettingsPage> {
             SizedBox(height: 8),
             Text('Version: 1.0.0', style: TextStyle(color: Colors.grey)),
             SizedBox(height: 8),
-            Text('Developed by: Your Team ',
+            Text('Developed by: our Team ',
                 style: TextStyle(color: Colors.grey)),
             SizedBox(height: 8),
             Text('Contact: support@accidentalertsystem.com',
@@ -348,48 +384,52 @@ class _SettingsPageState extends State<SettingsPage> {
           .collection('user_info')
           .doc(user.uid)
           .update({
-        'phoneNumber': _phoneNumberController.text,
-        'dateOfBirth': _dateOfBirth,
-        'medicalRecords': {
-          'bloodGroup': _bloodGroupController.text,
-          'emergencyContact': {
-            'name': _emergencyNameController.text,
-            'number': _emergencyNumberController.text,
-            'relation': _emergencyRelationController.text,
-          }
-        }
-      });
+            'phoneNumber': _phoneNumberController.text,
+            'dateOfBirth': _dateOfBirth,
+            'medicalRecords': {
+              'bloodGroup': _bloodGroupController.text,
+              'allergies': _allergies,
+              'emergencyContact': {
+                'name': _emergencyNameController.text,
+                'number': _emergencyNumberController.text,
+                'relation': _emergencyRelationController.text,
+              }
+            }
+          });
 
       // Update settings in users collection
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .update({
-        'settings': {
-          'monitoringEnabled': _monitoringEnabled,
-          'locationEnabled': _locationEnabled,
-        }
-      });
+            'settings': {
+              'monitoringEnabled': _monitoringEnabled,
+              'locationEnabled': _locationEnabled,
+            }
+          });
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Settings saved successfully'),
-        backgroundColor: Colors.green,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Settings saved successfully'),
+          backgroundColor: Colors.green,
+        ));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to save settings: $e'),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save settings: $e'),
+          backgroundColor: Colors.red,
+        ));
     }
   }
 
   @override
-  void dispose() {
+ void dispose() {
     _emergencyNameController.dispose();
     _emergencyNumberController.dispose();
     _emergencyRelationController.dispose();
     _phoneNumberController.dispose();
     _bloodGroupController.dispose();
+    _allergiesController.dispose();
     super.dispose();
   }
 }
