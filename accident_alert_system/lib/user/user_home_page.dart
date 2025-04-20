@@ -30,19 +30,7 @@ class _UserHomePageState extends State<UserHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('User Home Page'),
-        backgroundColor: Colors.blueAccent,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.of(context).pushReplacementNamed('/login');
-            },
-          ),
-        ],
-      ),
+      
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -428,80 +416,100 @@ Future<void> _saveAccidentToFirestore() async {
     });
   }
 
-   @override
-  Widget build(BuildContext context) {
-    // If we have an active accident, show status instead of monitoring UI
-    if (_currentAccidentId != null) {
-      return StreamBuilder<DocumentSnapshot>(
-        stream: _firestore.collection('accidents').doc(_currentAccidentId).snapshots(),
-        builder: (context, snapshot) {
-          final status = snapshot.hasData 
-              ? snapshot.data!.get('status') ?? 'detected'
-              : 'detected';
-              
-          return Center(
+    @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('User Home Page'),
+      backgroundColor: Colors.blueAccent,
+      actions: [
+        IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: () async {
+            await FirebaseAuth.instance.signOut();
+            Navigator.of(context).pushReplacementNamed('/login');
+          },
+        ),
+      ],
+    ),
+    body: _currentAccidentId != null
+        ? StreamBuilder<DocumentSnapshot>(
+            stream: _firestore
+                .collection('accidents')
+                .doc(_currentAccidentId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              final status = snapshot.hasData
+                  ? snapshot.data!.get('status') ?? 'detected'
+                  : 'detected';
+
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _getStatusIcon(status),
+                      size: 64,
+                      color: _getStatusColor(status),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      _getStatusTitle(status),
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      _getStatusMessage(status),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    SizedBox(height: 30),
+                    if (status == 'resolved')
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _currentAccidentId = null;
+                            _accidentStatusSubscription?.cancel();
+                          });
+                        },
+                        child: Text('RETURN TO MONITORING'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          )
+        : Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  _getStatusIcon(status),
-                  size: 64,
-                  color: _getStatusColor(status),
+                Text(
+                  _isMonitoring
+                      ? 'Monitoring: $_count/10'
+                      : 'Ready to monitor',
+                  style: TextStyle(fontSize: 24),
                 ),
                 SizedBox(height: 20),
-                Text(
-                  _getStatusTitle(status),
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  _getStatusMessage(status),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18),
-                ),
-                SizedBox(height: 30),
-                if (status == 'resolved')
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _currentAccidentId = null;
-                        _accidentStatusSubscription?.cancel();
-                      });
-                    },
-                    child: Text('RETURN TO MONITORING'),
+                ElevatedButton(
+                  onPressed: _isMonitoring ? _stopMonitoring : _startMonitoring,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _isMonitoring ? Colors.red : Colors.blue,
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
                   ),
+                  child: Text(
+                    _isMonitoring ? 'STOP MONITORING' : 'START MONITORING',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ],
             ),
-          );
-        },
-      );
-    }
+          ),
+  );
+}
 
-    // Normal monitoring UI
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            _isMonitoring ? 'Monitoring: $_count/10' : 'Ready to monitor',
-            style: TextStyle(fontSize: 24),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _isMonitoring ? _stopMonitoring : _startMonitoring,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isMonitoring ? Colors.red : Colors.blue,
-              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-            ),
-            child: Text(
-              _isMonitoring ? 'STOP MONITORING' : 'START MONITORING',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
     // Helper methods for status UI
   IconData _getStatusIcon(String status) {
     switch (status) {
