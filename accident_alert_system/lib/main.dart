@@ -1,4 +1,5 @@
 import 'package:accident_alert_system/auth/register_page.dart';
+import 'package:accident_alert_system/auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -34,7 +35,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
-      home: RegisterPage(),
+      initialRoute: '/register',
+      routes: {
+        '/register': (context) => RegisterPage(),
+        '/login': (context) => LoginPage(), // make sure to import this
+      },
     );
   }
 }
