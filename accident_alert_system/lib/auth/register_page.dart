@@ -312,7 +312,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                             onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
                             validator: (value) {
                               if (value?.isEmpty ?? true) return 'Please enter a password';
-                              if (!RegExp(r'^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[@$!%?&#_-])[A-Za-z\d@$!%?&#_-]{8,}$').hasMatch(value!)) {
+                              if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_-])[A-Za-z\d@$!%*?&#_-]{8,}$').hasMatch(value!)) {
                                 return 'Must include: 8+ chars, 1 uppercase, 1 number, 1 special char';
                               }
                               return null;
