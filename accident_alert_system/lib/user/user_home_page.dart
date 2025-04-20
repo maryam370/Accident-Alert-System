@@ -6,6 +6,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:location/location.dart';
+import 'package:accident_alert_system/user/user_history_page.dart';
+import 'package:accident_alert_system/user/user_settings_page.dart';
+
+
 
 
 class UserHomePage extends StatefulWidget {
@@ -65,6 +69,8 @@ class _HomePageState extends State<HomePage> {
   bool _notificationCancelled = false;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _notificationsCollection = FirebaseFirestore.instance.collection('notifications');
+
   Location location = new Location();
  bool _serviceEnabled = false;
  PermissionStatus? _permissionGranted;
@@ -164,34 +170,80 @@ Future<void> _setupNotifications() async {
     );
   }
 
-
-  Future<void> _saveAccidentToFirestore() async {
+Future<void> _saveAccidentToFirestore() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // Get current location (you'll need to implement this)
-      // For now using mock location
-final location = {
-  'latitude': _locationData?.latitude ?? 0.0, 
-  'longitude': _locationData?.longitude ?? 0.0
-};
-      await _firestore.collection('accidents').add({
+      final location = {
+        'latitude': _locationData?.latitude ?? 0.0, 
+        'longitude': _locationData?.longitude ?? 0.0
+      };
+
+      // First create the accident document
+      final accidentRef = await _firestore.collection('accidents').add({
         'userId': user.uid,
         'location': location,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'detected',
-        'severity': 'high', // You can determine this from sensor data
+        'severity': 'high',
         'assignedAmbulanceId': '',
         'assignedHospitalId': '',
         'assignedPoliceId': '',
       });
 
-      print('Accident saved to Firestore');
+      // NEW: Store notification data for responders
+      await _storeNotificationData(
+        accidentId: accidentRef.id,
+        userId: user.uid,
+        location: location,
+      );
+
+      print('Accident and notification data saved to Firestore');
     } catch (e) {
       print('Error saving accident: $e');
     }
   }
+
+  // NEW METHOD: Stores notification data without sending push notifications
+  Future<void> _storeNotificationData({
+    required String accidentId,
+    required String userId,
+    required Map<String, dynamic> location,
+  }) async {
+    try {
+      // Get all emergency responders
+      final responders = await _firestore.collection('users')
+          .where('role', whereIn: ['Hospital', 'Police', 'Ambulance'])
+          .get();
+
+      // Store a notification document for each responder
+      final batch = _firestore.batch();
+      final timestamp = FieldValue.serverTimestamp();
+      
+      for (final responder in responders.docs) {
+        final notificationRef = _notificationsCollection.doc();
+        
+        batch.set(notificationRef, {
+          'accidentId': accidentId,
+          'userId': userId,
+          'responderId': responder.id,
+          'location': location,
+          'message': 'New accident detected at ${location['latitude']}, ${location['longitude']}',
+          'timestamp': timestamp,
+          'status': 'pending', // Can be: pending, accepted, rejected
+          'read': false,
+        });
+      }
+
+      await batch.commit();
+      print('Stored notifications for ${responders.docs.length} responders');
+    } catch (e) {
+      print('Error storing notification data: $e');
+    }
+  }
+
+
  Future<void> _sendNotification() async {
     if (_fcmToken == null) return;
 
@@ -283,12 +335,5 @@ final location = {
   }
 }
 
-class HistoryPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Center(child: Text('History Page'));
-}
 
-class SettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Center(child: Text('Settings Page'));
-}
+
