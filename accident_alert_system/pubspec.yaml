@@ -39,6 +39,7 @@ dependencies:
   http: any
   firebase_database: any
   firebase_messaging : any
+  location: any
 
   
 

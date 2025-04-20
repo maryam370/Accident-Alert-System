@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:location/location.dart';
+
 
 class UserHomePage extends StatefulWidget {
   @override
@@ -63,17 +65,43 @@ class _HomePageState extends State<HomePage> {
   bool _notificationCancelled = false;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  Location location = new Location();
+ bool _serviceEnabled = false;
+ PermissionStatus? _permissionGranted;
+ LocationData? _locationData;
+ 
 
   @override
   void initState() {
     super.initState();
     _initializeFirebase();
+    _requestLocatoinPermission();
   }
 
   Future<void> _initializeFirebase() async {
     await Firebase.initializeApp();
     await _setupNotifications();
   }
+  void _requestLocatoinPermission() async{
+  _serviceEnabled = await location.serviceEnabled();
+  if(!_serviceEnabled){
+    _serviceEnabled=await location.requestService();
+    if(!_serviceEnabled){
+      return;
+    }
+  }
+  _permissionGranted=await location.hasPermission();
+if(_permissionGranted==PermissionStatus.denied){
+  _permissionGranted=await location.requestPermission();
+  if(_permissionGranted==PermissionStatus.granted){
+    return;
+  }
+}
+_locationData=await location.getLocation();
+setState(() {
+  
+});
+ }
 
 Future<void> _setupNotifications() async {
     await _firebaseMessaging.requestPermission(
@@ -144,8 +172,10 @@ Future<void> _setupNotifications() async {
 
       // Get current location (you'll need to implement this)
       // For now using mock location
-      final location = {'latitude': 37.4219983, 'longitude': -122.084};
-
+final location = {
+  'latitude': _locationData?.latitude ?? 0.0, 
+  'longitude': _locationData?.longitude ?? 0.0
+};
       await _firestore.collection('accidents').add({
         'userId': user.uid,
         'location': location,
