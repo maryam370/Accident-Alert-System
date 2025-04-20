@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:location/location.dart';
 import 'package:accident_alert_system/user/user_history_page.dart';
 import 'package:accident_alert_system/user/user_settings_page.dart';
+import 'dart:async';
+
 
 
 
@@ -67,6 +69,8 @@ class _HomePageState extends State<HomePage> {
   int _count = 0;
   String? _fcmToken;
   bool _notificationCancelled = false;
+  String? _currentAccidentId;
+  StreamSubscription<DocumentSnapshot>? _accidentStatusSubscription;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _notificationsCollection = FirebaseFirestore.instance.collection('notifications');
@@ -83,6 +87,13 @@ class _HomePageState extends State<HomePage> {
     _initializeFirebase();
     _requestLocatoinPermission();
   }
+
+@override
+  void dispose() {
+    _accidentStatusSubscription?.cancel();
+    super.dispose();
+  }
+
 
   Future<void> _initializeFirebase() async {
     await Firebase.initializeApp();
@@ -180,28 +191,71 @@ Future<void> _saveAccidentToFirestore() async {
         'longitude': _locationData?.longitude ?? 0.0
       };
 
-      // First create the accident document
+      // Create accident document
       final accidentRef = await _firestore.collection('accidents').add({
         'userId': user.uid,
         'location': location,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'detected',
-        'severity': 'high',
         'assignedAmbulanceId': '',
         'assignedHospitalId': '',
         'assignedPoliceId': '',
       });
 
-      // NEW: Store notification data for responders
+      _currentAccidentId = accidentRef.id;
+      
+      // Start listening for status updates
+      _setupAccidentStatusListener();
+
+      // Store notification data for responders
       await _storeNotificationData(
         accidentId: accidentRef.id,
         userId: user.uid,
         location: location,
       );
 
-      print('Accident and notification data saved to Firestore');
+      setState(() {}); // Trigger UI rebuild
     } catch (e) {
       print('Error saving accident: $e');
+    }
+  }
+  void _setupAccidentStatusListener() {
+    if (_currentAccidentId == null) return;
+
+    _accidentStatusSubscription = _firestore
+        .collection('accidents')
+        .doc(_currentAccidentId)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        final status = snapshot.data()?['status'] ?? 'detected';
+        _showStatusUpdate(status);
+        setState(() {}); // Rebuild UI with new status
+      }
+    });
+  }
+
+  void _showStatusUpdate(String status) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_getStatusMessage(status)),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  String _getStatusMessage(String status) {
+    switch (status) {
+      case 'detected':
+        return 'Accident detected! Help is on the way';
+      case 'ambulance_dispatched':
+        return 'Ambulance has been dispatched';
+      case 'hospital_notified':
+        return 'Hospital has been notified';
+      case 'resolved':
+        return 'Your accident case has been resolved';
+      default:
+        return 'Status updated: $status';
     }
   }
 
@@ -307,8 +361,56 @@ Future<void> _saveAccidentToFirestore() async {
     });
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
+    // If we have an active accident, show status instead of monitoring UI
+    if (_currentAccidentId != null) {
+      return StreamBuilder<DocumentSnapshot>(
+        stream: _firestore.collection('accidents').doc(_currentAccidentId).snapshots(),
+        builder: (context, snapshot) {
+          final status = snapshot.hasData 
+              ? snapshot.data!.get('status') ?? 'detected'
+              : 'detected';
+              
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _getStatusIcon(status),
+                  size: 64,
+                  color: _getStatusColor(status),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  _getStatusTitle(status),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  _getStatusMessage(status),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 30),
+                if (status == 'resolved')
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _currentAccidentId = null;
+                        _accidentStatusSubscription?.cancel();
+                      });
+                    },
+                    child: Text('RETURN TO MONITORING'),
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    // Normal monitoring UI
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -333,6 +435,37 @@ Future<void> _saveAccidentToFirestore() async {
       ),
     );
   }
+    // Helper methods for status UI
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'detected': return Icons.warning;
+      case 'ambulance_dispatched': return Icons.local_hospital;
+      case 'hospital_notified': return Icons.medical_services;
+      case 'resolved': return Icons.check_circle;
+      default: return Icons.info;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'detected': return Colors.orange;
+      case 'ambulance_dispatched': return Colors.blue;
+      case 'hospital_notified': return Colors.green;
+      case 'resolved': return Colors.green;
+      default: return Colors.grey;
+    }
+  }
+
+  String _getStatusTitle(String status) {
+    switch (status) {
+      case 'detected': return 'ACCIDENT DETECTED';
+      case 'ambulance_dispatched': return 'AMBULANCE DISPATCHED';
+      case 'hospital_notified': return 'HOSPITAL NOTIFIED';
+      case 'resolved': return 'CASE RESOLVED';
+      default: return 'STATUS UPDATE';
+    }
+  }
+
 }
 
 
