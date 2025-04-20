@@ -62,6 +62,7 @@ class _HomePageState extends State<HomePage> {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _notificationsCollection = FirebaseFirestore.instance.collection('notifications');
+final _notificationRecipientsCollection = FirebaseFirestore.instance.collection('notification_recipients');
 
   Location location = new Location();
  bool _serviceEnabled = false;
@@ -314,41 +315,56 @@ Future<void> _saveAccidentToFirestore() async {
     }
   }
 
-  // NEW METHOD: Stores notification data without sending push notifications
-  Future<void> _storeNotificationData({
-    required String accidentId,
-    required String userId,
-    required Map<String, dynamic> location,
-  }) async {
-    try {
-      // Get all emergency responders
-      final responders = await _firestore.collection('users')
-          .where('role', whereIn: ['Hospital', 'Police', 'Ambulance'])
-          .get();
+ Future<void> _storeNotificationData({
+  required String accidentId,
+  required String userId,
+  required Map<String, dynamic> location,
+}) async {
+  try {
+    // Get all emergency responders
+    final responders = await _firestore.collection('users')
+        .where('role', whereIn: ['Hospital', 'Police', 'Ambulance'])
+        .get();
 
-      // Store a notification document for each responder
-      final batch = _firestore.batch();
-      final timestamp = FieldValue.serverTimestamp();
-      
-      for (final responder in responders.docs) {
-        final notificationRef = _notificationsCollection.doc();
+    // Check if notification already exists
+    final existingNotifications = await _notificationsCollection
+        .where('accidentId', isEqualTo: accidentId)
+        .get();
         
-        batch.set(notificationRef, {
-          'accidentId': accidentId,
-          'userId': userId,
-          'responderId': responder.id,
-          'message': 'New accident detected at ${location['latitude']}, ${location['longitude']}',
-          'timestamp': timestamp,
-          'status': 'sent',
-        });
-      }
+    if (existingNotifications.docs.isNotEmpty) return;
 
-      await batch.commit();
-      print('Stored notifications for ${responders.docs.length} responders');
-    } catch (e) {
-      print('Error storing notification data: $e');
+    // Create the main notification document
+    final notificationMessage = 'New accident detected at ${location['latitude']}, ${location['longitude']}';
+    final timestamp = FieldValue.serverTimestamp();
+    
+    final notificationRef = await _notificationsCollection.add({
+      'accidentId': accidentId,
+      'userId': userId,
+      'message': notificationMessage,
+      'timestamp': timestamp,
+    });
+
+    // Store recipient records in a batch
+    final batch = _firestore.batch();
+    
+    for (final responder in responders.docs) {
+      final recipientRef = _notificationRecipientsCollection.doc();
+      
+      batch.set(recipientRef, {
+        'notificationId': notificationRef.id,
+        'recipientId': responder.id,
+        'status': 'sent', // Can be 'sent', 'delivered', 'read'
+        'timestamp': timestamp,
+      });
     }
+
+    await batch.commit();
+    print('Stored notification with ${responders.docs.length} recipients');
+  } catch (e) {
+    print('Error storing notification data: $e');
   }
+}
+
 
 
  Future<void> _sendNotification() async {
