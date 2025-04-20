@@ -337,11 +337,9 @@ Future<void> _saveAccidentToFirestore() async {
           'accidentId': accidentId,
           'userId': userId,
           'responderId': responder.id,
-          'location': location,
           'message': 'New accident detected at ${location['latitude']}, ${location['longitude']}',
           'timestamp': timestamp,
-          'status': 'pending', // Can be: pending, accepted, rejected
-          'read': false,
+          'status': 'sent',
         });
       }
 
