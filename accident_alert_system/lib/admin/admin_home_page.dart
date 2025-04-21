@@ -73,10 +73,25 @@ class _AdminHomePageState extends State<AdminHomePage> {
 class HomePage extends StatelessWidget {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Function to get user count for a given role
+  // Get count of users with a given role
   Future<int> _getUserCount(String role) async {
     final querySnapshot = await _firestore.collection('users').where('role', isEqualTo: role).get();
-    return querySnapshot.docs.length; // Count the number of documents (users)
+    return querySnapshot.docs.length;
+  }
+
+  // Get total number of accidents
+  Future<int> _getTotalAccidents() async {
+    final querySnapshot = await _firestore.collection('accidents').get();
+    return querySnapshot.docs.length;
+  }
+
+  // Get active accidents (anything not resolved)
+  Future<int> _getActiveAccidents() async {
+    final querySnapshot = await _firestore
+        .collection('accidents')
+        .where('status', isEqualTo: 'resolved')
+        .get();
+    return querySnapshot.docs.length;
   }
 
   @override
@@ -85,18 +100,16 @@ class HomePage extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Row for Hospital and Police cards
           Row(
             children: [
               Expanded(
                 child: FutureBuilder<int>(
                   future: _getUserCount('Hospital'),
                   builder: (context, snapshot) {
-                    final count = snapshot.data ?? 0;
                     return _buildCard(
                       icon: Icons.local_hospital,
                       title: 'Hospitals',
-                      count: count,
+                      count: snapshot.data ?? 0,
                       color: Colors.blue,
                     );
                   },
@@ -107,11 +120,10 @@ class HomePage extends StatelessWidget {
                 child: FutureBuilder<int>(
                   future: _getUserCount('Police'),
                   builder: (context, snapshot) {
-                    final count = snapshot.data ?? 0;
                     return _buildCard(
                       icon: Icons.local_police,
                       title: 'Police',
-                      count: count,
+                      count: snapshot.data ?? 0,
                       color: Colors.green,
                     );
                   },
@@ -120,19 +132,16 @@ class HomePage extends StatelessWidget {
             ],
           ),
           SizedBox(height: 16),
-
-          // Row for Ambulance/EMS and Users cards
           Row(
             children: [
               Expanded(
                 child: FutureBuilder<int>(
                   future: _getUserCount('Ambulance'),
                   builder: (context, snapshot) {
-                    final count = snapshot.data ?? 0;
                     return _buildCard(
                       icon: Icons.medical_services,
                       title: 'Ambulance',
-                      count: count,
+                      count: snapshot.data ?? 0,
                       color: Colors.orange,
                     );
                   },
@@ -141,13 +150,12 @@ class HomePage extends StatelessWidget {
               SizedBox(width: 16),
               Expanded(
                 child: FutureBuilder<int>(
-                  future: _getUserCount('Admin'),
+                  future: _getUserCount('user'),
                   builder: (context, snapshot) {
-                    final count = snapshot.data ?? 0;
                     return _buildCard(
                       icon: Icons.people,
                       title: 'Users',
-                      count: count,
+                      count: snapshot.data ?? 0,
                       color: Colors.purple,
                     );
                   },
@@ -156,25 +164,33 @@ class HomePage extends StatelessWidget {
             ],
           ),
           SizedBox(height: 16),
-
-          // Row for Total Accidents and Active Accidents cards
           Row(
             children: [
               Expanded(
-                child: _buildCard(
-                  icon: Icons.car_crash,
-                  title: 'Total Accidents',
-                  count: 35, // Placeholder value
-                  color: Colors.red,
+                child: FutureBuilder<int>(
+                  future: _getTotalAccidents(),
+                  builder: (context, snapshot) {
+                    return _buildCard(
+                      icon: Icons.car_crash,
+                      title: 'Total Accidents',
+                      count: snapshot.data ?? 0,
+                      color: Colors.red,
+                    );
+                  },
                 ),
               ),
               SizedBox(width: 16),
               Expanded(
-                child: _buildCard(
-                  icon: Icons.warning,
-                  title: 'Active Accidents',
-                  count: 5, // Placeholder value
-                  color: Colors.amber,
+                child: FutureBuilder<int>(
+                  future: _getActiveAccidents(),
+                  builder: (context, snapshot) {
+                    return _buildCard(
+                      icon: Icons.warning,
+                      title: 'Active Accidents',
+                      count: snapshot.data ?? 0,
+                      color: Colors.amber,
+                    );
+                  },
                 ),
               ),
             ],
@@ -184,8 +200,12 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // Method to build the individual card
-  Widget _buildCard({required IconData icon, required String title, required int count, required Color color}) {
+  Widget _buildCard({
+    required IconData icon,
+    required String title,
+    required int count,
+    required Color color,
+  }) {
     return Card(
       elevation: 4,
       child: Padding(
@@ -201,7 +221,7 @@ class HomePage extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Total: $count', // Display the "Total" text with the count
+              'Total: $count',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[700]),
             ),
           ],
@@ -210,6 +230,7 @@ class HomePage extends StatelessWidget {
     );
   }
 }
+
 
 
 class AlertsPage extends StatelessWidget {
