@@ -64,23 +64,11 @@ class _SettingsPageState extends State<SettingsPage> {
         _allergies = List<String>.from(data['medicalRecords']?['allergies'] ?? []);
         _allergiesController.text = _allergies.join(', ');
         
-        _loadAppSettings(user.uid);
       });
     }
   }
 
-  Future<void> _loadAppSettings(String userId) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-
-    if (doc.exists) {
-      final data = doc.data()!;
-      setState(() {
-        _monitoringEnabled = data['settings']?['monitoringEnabled'] ?? true;
-        _locationEnabled = data['settings']?['locationEnabled'] ?? true;
-      });
-    }
-  }
+ 
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -546,18 +534,6 @@ class _SettingsPageState extends State<SettingsPage> {
               }
             }
           });
-
-      // Update settings in users collection
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-            'settings': {
-              'monitoringEnabled': _monitoringEnabled,
-              'locationEnabled': _locationEnabled,
-            }
-          });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Settings saved successfully'),
