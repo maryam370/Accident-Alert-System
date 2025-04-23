@@ -89,7 +89,7 @@ class HomePage extends StatelessWidget {
   Future<int> _getActiveAccidents() async {
     final querySnapshot = await _firestore
         .collection('accidents')
-        .where('status', isEqualTo: 'resolved')
+        .where('status', isNotEqualTo: 'resolved')
         .get();
     return querySnapshot.docs.length;
   }
