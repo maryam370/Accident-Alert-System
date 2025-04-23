@@ -33,9 +33,18 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
     for (var doc in accidentSnapshot.docs) {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
-      data['ambulanceName'] = await _getEntityName(data['assignedAmbulanceId']);
-      data['hospitalName'] = await _getEntityName(data['assignedHospitalId']);
-      data['policeName'] = await _getEntityName(data['assignedPoliceId']);
+      // Fetch names from respective collections if IDs exist
+      data['ambulanceName'] = data['assignedAmbulanceId'] != null 
+          ? await _getAmbulanceName(data['assignedAmbulanceId']) 
+          : "Not Assigned";
+          
+      data['hospitalName'] = data['assignedHospitalId'] != null 
+          ? await _getHospitalName(data['assignedHospitalId']) 
+          : "Not Assigned";
+          
+      data['policeName'] = data['assignedPoliceId'] != null 
+          ? await _getPoliceName(data['assignedPoliceId']) 
+          : "Not Assigned";
 
       accidentDetails.add(data);
     }
@@ -46,17 +55,40 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
     });
   }
 
-  Future<String> _getEntityName(String? userId) async {
-    if (userId == null || userId.isEmpty) return "Not Assigned";
+  Future<String> _getAmbulanceName(String ambulanceId) async {
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
-      if (userDoc.exists && userDoc.data() != null) {
-        return userDoc.get('name') ?? "Unknown";
+      DocumentSnapshot ambulanceDoc = await _firestore.collection('ambulance_info').doc(ambulanceId).get();
+      if (ambulanceDoc.exists) {
+        return ambulanceDoc.get('name') ?? "Ambulance (Unknown)";
       }
     } catch (e) {
-      print("Error fetching user name: $e");
+      print("Error fetching ambulance name: $e");
     }
-    return "Unknown";
+    return "Ambulance (Unknown)";
+  }
+
+  Future<String> _getHospitalName(String hospitalId) async {
+    try {
+      DocumentSnapshot hospitalDoc = await _firestore.collection('hospital_info').doc(hospitalId).get();
+      if (hospitalDoc.exists) {
+        return hospitalDoc.get('name') ?? "Hospital (Unknown)";
+      }
+    } catch (e) {
+      print("Error fetching hospital name: $e");
+    }
+    return "Hospital (Unknown)";
+  }
+
+  Future<String> _getPoliceName(String policeId) async {
+    try {
+      DocumentSnapshot policeDoc = await _firestore.collection('police_info').doc(policeId).get();
+      if (policeDoc.exists) {
+        return policeDoc.get('name') ?? "Police Station (Unknown)";
+      }
+    } catch (e) {
+      print("Error fetching police name: $e");
+    }
+    return "Police Station (Unknown)";
   }
 
   String formatTimestamp(Timestamp timestamp) {
