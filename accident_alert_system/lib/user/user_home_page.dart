@@ -334,7 +334,7 @@ Future<void> _saveAccidentToFirestore() async {
     if (existingNotifications.docs.isNotEmpty) return;
 
     // Create the main notification document
-    final notificationMessage = 'New accident detected at ${location['latitude']}, ${location['longitude']}';
+    final notificationMessage = 'New accident detected }';
     final timestamp = FieldValue.serverTimestamp();
     
     final notificationRef = await _notificationsCollection.add({
