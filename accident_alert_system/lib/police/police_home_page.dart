@@ -33,7 +33,8 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
   Future<void> _initializeData() async {
     try {
-      _policeId = _auth.currentUser?.uid; // Fetch the logged-in police officer's ID
+      _policeId =
+          _auth.currentUser?.uid; // Fetch the logged-in police officer's ID
       _setupCasesListener();
       await _setupFCMNotifications();
     } catch (e) {
@@ -55,7 +56,10 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
       final userId = _auth.currentUser?.uid;
       if (token != null && userId != null) {
-        await _firestore.collection('police_info').doc(userId).update({'fcmToken': token});
+        await _firestore
+            .collection('police_info')
+            .doc(userId)
+            .update({'fcmToken': token});
       }
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -80,7 +84,8 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(message.notification?.title ?? 'Notification'),
-        content: Text(message.notification?.body ?? 'You have received a new case.'),
+        content:
+            Text(message.notification?.body ?? 'You have received a new case.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -96,18 +101,20 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
       _casesSubscription?.cancel();
       setState(() => _isLoading = true);
 
-      Query casesQuery = _firestore.collection('accidents').orderBy('timestamp', descending: true);
+      Query casesQuery = _firestore
+          .collection('accidents')
+          .orderBy('timestamp', descending: true);
 
       if (_selectedDate != null) {
-        final startOfDay = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+        final startOfDay = DateTime(
+            _selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
         final endOfDay = startOfDay.add(Duration(days: 1));
 
         casesQuery = casesQuery
-            .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('timestamp',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
             .where('timestamp', isLessThan: Timestamp.fromDate(endOfDay));
       }
-
-    
 
       _casesSubscription = casesQuery.snapshots().listen((snapshot) async {
         List<Map<String, dynamic>> caseList = [];
@@ -119,7 +126,8 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
             Map<String, dynamic>? victimInfo;
             if (victimId != null) {
-              final victimDoc = await _firestore.collection('user_info').doc(victimId).get();
+              final victimDoc =
+                  await _firestore.collection('user_info').doc(victimId).get();
               if (victimDoc.exists) victimInfo = victimDoc.data();
             }
 
@@ -198,7 +206,8 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
     final ambulance = caseData['ambulance'];
     final hospital = caseData['hospital'];
     final location = caseData['location'];
-    final status = caseData['status'] ?? 'Pending'; // Default to 'Pending' if null
+    final status =
+        caseData['status'] ?? 'Pending'; // Default to 'Pending' if null
 
     return Card(
       margin: EdgeInsets.all(12),
@@ -213,10 +222,12 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
               children: [
                 Text(
                   'CASE #${caseData['id'].substring(0, 6).toUpperCase()}',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
                 ),
                 Text(
-                  DateFormat('MMM dd, yyyy - hh:mm a').format(caseData['timestamp']),
+                  DateFormat('MMM dd, yyyy - hh:mm a')
+                      .format(caseData['timestamp']),
                   style: TextStyle(color: Colors.grey[700]),
                 ),
               ],
@@ -226,7 +237,8 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
             Row(
               children: [
                 Text('Status: ',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black)),
                 Text(status,
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -241,16 +253,21 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
             // Victim Information
             if (victim != null) ...[
-              Text('VICTIM INFORMATION', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text('VICTIM INFORMATION',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue)),
               Divider(),
               Text('Name: ${victim['name'] ?? 'Unknown'}'),
-              if (victim['phoneNumber'] != null) Text('Phone: ${victim['phoneNumber']}'),
+              if (victim['phoneNumber'] != null)
+                Text('Phone: ${victim['phoneNumber']}'),
               SizedBox(height: 8),
             ],
 
             // Location
             if (location != null) ...[
-              Text('LOCATION', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text('LOCATION',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue)),
               Divider(),
               Text('Latitude: ${location['latitude']}'),
               Text('Longitude: ${location['longitude']}'),
@@ -259,7 +276,9 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
             // Ambulance
             if (ambulance != null) ...[
-              Text('AMBULANCE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text('AMBULANCE',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue)),
               Divider(),
               Text('Driver: ${ambulance['name'] ?? 'Unknown'}'),
               Text('Phone: ${ambulance['phoneNumber'] ?? 'N/A'}'),
@@ -268,7 +287,9 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
             // Hospital
             if (hospital != null) ...[
-              Text('HOSPITAL', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text('HOSPITAL',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue)),
               Divider(),
               Text('Name: ${hospital['name'] ?? 'Unknown'}'),
               Text('Phone: ${hospital['phoneNumber'] ?? 'N/A'}'),
@@ -285,6 +306,15 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Police Dashboard'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              await _auth.signOut();
+              Navigator.of(context).pushReplacementNamed('/login');
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -305,7 +335,7 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
               ],
             ),
           ),
-          
+
           // Body Content (List of Cases or Loading Indicator)
           _isLoading
               ? Center(child: CircularProgressIndicator())
@@ -314,7 +344,8 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
                   : Expanded(
                       child: ListView.builder(
                         itemCount: _allCases.length,
-                        itemBuilder: (context, index) => _buildCaseCard(_allCases[index]),
+                        itemBuilder: (context, index) =>
+                            _buildCaseCard(_allCases[index]),
                       ),
                     ),
         ],

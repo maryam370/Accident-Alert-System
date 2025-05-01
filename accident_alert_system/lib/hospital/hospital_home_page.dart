@@ -200,10 +200,9 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
       setState(() => _isLoading = false);
     }
   }
-  String _formatDateTime(DateTime dateTime) {
+   String _formatDateTime(DateTime dateTime) {
   return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
 }
-
 
   Widget _buildCaseCard(Map<String, dynamic> caseData) {
     final victim = caseData['victim'];
