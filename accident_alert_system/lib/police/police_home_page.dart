@@ -17,7 +17,6 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
   bool _isLoading = true;
   DateTime? _selectedDate;
   StreamSubscription<QuerySnapshot>? _casesSubscription;
-  String? _policeId; // Store the police officer's ID
 
   @override
   void initState() {
@@ -33,8 +32,6 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
 
   Future<void> _initializeData() async {
     try {
-      _policeId =
-          _auth.currentUser?.uid; // Fetch the logged-in police officer's ID
       _setupCasesListener();
       await _setupFCMNotifications();
     } catch (e) {
