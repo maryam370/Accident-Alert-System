@@ -129,7 +129,8 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
           .collection('accidents')
           .where('assignedHospitalId', isEqualTo: userId)
           .where('status', isNotEqualTo: 'resolved')
-          .orderBy('status') // Required when using isNotEqualTo
+          .orderBy('status') // still required because of the inequality filter
+          .orderBy('timestamp', descending: true)
           .snapshots()
           .listen((accidentsSnapshot) async {
         print(
@@ -157,7 +158,7 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
               if (victimInfo.containsKey('medicalRecords')) {
                 final medical =
                     victimInfo['medicalRecords'] as Map<String, dynamic>;
-                victimInfo['bloodType'] = medical['bloodGroup'];
+                victimInfo['bloodGroup'] = medical['bloodGroup'];
                 victimInfo['emergencyContact'] = medical['emergencyContact'];
                 victimInfo['allergies'] = medical['allergies'];
               }
@@ -200,9 +201,10 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
       setState(() => _isLoading = false);
     }
   }
-   String _formatDateTime(DateTime dateTime) {
-  return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-}
+
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
 
   Widget _buildCaseCard(Map<String, dynamic> caseData) {
     final victim = caseData['victim'];
@@ -224,8 +226,9 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.red,
-                  ),),
-                  SizedBox(height: 4),
+                  ),
+                ),
+                SizedBox(height: 4),
                 Text(
                   'Reported At: ${_formatDateTime(caseData['timestamp'])}',
                   style: TextStyle(color: Colors.grey[700]),
@@ -243,7 +246,7 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
               ),
               Divider(),
               Text('Name: ${victim['name'] ?? 'Unknown'}'),
-              if (victim['bloodType'] != null)
+              if (victim['bloodGroup'] != null)
                 Text('Blood Type: ${victim['bloodGroup']}'),
               if (victim['allergies'] != null && victim['allergies'].isNotEmpty)
                 Text('Allergies: ${victim['allergies'].join(', ')}'),
