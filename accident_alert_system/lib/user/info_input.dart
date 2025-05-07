@@ -9,13 +9,16 @@ class InfoInputPage extends StatefulWidget {
   _InfoInputPageState createState() => _InfoInputPageState();
 }
 
-class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProviderStateMixin {
+class _InfoInputPageState extends State<InfoInputPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController emergencyNameController = TextEditingController();
-  final TextEditingController emergencyNumberController = TextEditingController();
-  final TextEditingController emergencyRelationController = TextEditingController();
+  final TextEditingController emergencyNumberController =
+      TextEditingController();
+  final TextEditingController emergencyRelationController =
+      TextEditingController();
   final TextEditingController allergiesController = TextEditingController();
 
   String? gender;
@@ -30,9 +33,10 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 600));
-    _offsetAnimation = Tween<Offset>(begin: Offset(0.0, 0.4), end: Offset.zero).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 600));
+    _offsetAnimation = Tween<Offset>(begin: Offset(0.0, 0.4), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _controller.forward();
   }
 
@@ -80,11 +84,17 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
       };
 
       try {
-        await FirebaseFirestore.instance.collection('user_info').doc(user.uid).set(userData);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("User information saved successfully!")));
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => UserHomePage()));
+        await FirebaseFirestore.instance
+            .collection('user_info')
+            .doc(user.uid)
+            .set(userData);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("User information saved successfully!")));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => UserHomePage()));
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to save user information.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to save user information.")));
         print("Error saving user info: $e");
       }
     }
@@ -123,7 +133,8 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
             child: SlideTransition(
               position: _offsetAnimation,
               child: Form(
@@ -132,41 +143,112 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
-                      child: Text("Personal Information",
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: Colors.black)),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextField(nameController, 'Full Name', Icons.person),
-                    _buildDropdown(gender, 'Gender', ['Male', 'Female', 'Other'], Icons.transgender,
-                        (value) => setState(() => gender = value)),
-                    _buildDatePicker(context),
-                    _buildTextField(phoneNumberController, 'Phone Number', Icons.phone),
-                    _buildDropdown(socialStatus, 'Social Status',
-                        ['Single', 'Married', 'Divorced', 'Widowed'], Icons.people, (value) => setState(() => socialStatus = value)),
-                    _buildDropdown(bloodType, 'Blood Type (Optional)',
-                        ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], Icons.bloodtype, (value) => setState(() => bloodType = value)),
-                    _buildTextField(allergiesController, 'Allergies (comma separated)', Icons.medical_services,
-                        onChanged: (val) => setState(() => allergies = val.split(',').map((e) => e.trim()).toList())),
-                    SizedBox(height: 30),
-                    Center(
-                      child: Text('Emergency Contact 🚨',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                      child: Text(
+                        "Enter Your Information",
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: themeColor),
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField(emergencyNameController, 'Name', Icons.person),
-                    _buildTextField(emergencyNumberController, 'Phone Number', Icons.phone),
-                    _buildTextField(emergencyRelationController, 'Relation', Icons.group),
-                    const SizedBox(height: 30),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTextField(
+                              nameController, 'Full Name', Icons.person),
+                          _buildDropdown(
+                              gender,
+                              'Gender',
+                              ['Male', 'Female', 'Other'],
+                              Icons.transgender,
+                              (value) => setState(() => gender = value)),
+                          _buildDatePicker(context),
+                          _buildTextField(phoneNumberController, 'Phone Number',
+                              Icons.phone),
+                          _buildDropdown(
+                            socialStatus,
+                            'Social Status',
+                            ['Single', 'Married', 'Divorced', 'Widowed'],
+                            Icons.people,
+                            (value) => setState(() => socialStatus = value),
+                          ),
+                          _buildDropdown(
+                            bloodType,
+                            'Blood Type (Optional)',
+                            ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+                            Icons.bloodtype,
+                            (value) => setState(() => bloodType = value),
+                          ),
+                          _buildTextField(
+                              allergiesController,
+                              'Allergies (comma separated)',
+                              Icons.medical_services,
+                              onChanged: (val) => setState(() => allergies = val
+                                  .split(',')
+                                  .map((e) => e.trim())
+                                  .toList())),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                     Center(
+                      child: Text(
+                        "Enter Your Emergency Contact",
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: themeColor),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTextField(
+                              emergencyNameController, 'Name', Icons.person),
+                          _buildTextField(emergencyNumberController,
+                              'Phone Number', Icons.phone),
+                          _buildTextField(emergencyRelationController,
+                              'Relation', Icons.group),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade300, Colors.blue.shade700],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
                       child: ElevatedButton(
                         onPressed: () => saveUserInfo(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: themeColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 36),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                          elevation: 5,
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors
+                              .transparent, // Removes default shadow color
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50)),
                         ),
-                        child: const Text("Save Info", style: TextStyle(fontSize: 16, color: Colors.white)),
+                        child: const Text(
+                          "Save Info",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -179,7 +261,8 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon,
+  Widget _buildTextField(
+      TextEditingController controller, String label, IconData icon,
       {Function(String)? onChanged}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18.0),
@@ -202,13 +285,14 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
             borderSide: BorderSide(color: Colors.blue.shade100),
           ),
         ),
-        validator: (value) => (value == null || value.isEmpty) ? 'Please enter $label' : null,
+        validator: (value) =>
+            (value == null || value.isEmpty) ? 'Please enter $label' : null,
       ),
     );
   }
 
-  Widget _buildDropdown(String? value, String label, List<String> options, IconData icon,
-      void Function(String?) onChanged) {
+  Widget _buildDropdown(String? value, String label, List<String> options,
+      IconData icon, void Function(String?) onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18.0),
       child: DropdownButtonFormField<String>(
@@ -222,7 +306,10 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
           contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        items: options.map((option) => DropdownMenuItem(value: option, child: Text(option))).toList(),
+        items: options
+            .map((option) =>
+                DropdownMenuItem(value: option, child: Text(option)))
+            .toList(),
         validator: (value) => value == null ? 'Please select $label' : null,
       ),
     );
@@ -239,7 +326,8 @@ class _InfoInputPageState extends State<InfoInputPage> with SingleTickerProvider
             prefixIcon: Icon(Icons.calendar_today, color: Colors.blue.shade900),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
+            contentPadding:
+                EdgeInsets.symmetric(vertical: 16.0, horizontal: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text(

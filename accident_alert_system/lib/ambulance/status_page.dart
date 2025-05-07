@@ -9,6 +9,9 @@ class StatusPage extends StatefulWidget {
 }
 
 class _StatusPageState extends State<StatusPage> {
+  final Color _primaryBlue = const Color(0xFF0D5D9F);
+  final Color _cardColor = const Color(0xFFE6F2FF);
+  final Color _warningColor = Colors.orange;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   Map<String, dynamic>? _assignment;
@@ -16,6 +19,7 @@ class _StatusPageState extends State<StatusPage> {
   String _currentStatus = 'en_route';
   bool _isLoading = true;
   bool _noAssignment = false;
+
   final List<String> _statusOptions = [
     'en_route',
     'arrived',
@@ -47,9 +51,11 @@ class _StatusPageState extends State<StatusPage> {
 
     try {
       // Check ambulance_info first for current assignment
-      final ambulanceDoc = await _firestore.collection('ambulance_info').doc(userId).get();
-      
-      if (!ambulanceDoc.exists || ambulanceDoc.data()?['currentAssignment'] == null) {
+      final ambulanceDoc =
+          await _firestore.collection('ambulance_info').doc(userId).get();
+
+      if (!ambulanceDoc.exists ||
+          ambulanceDoc.data()?['currentAssignment'] == null) {
         setState(() {
           _isLoading = false;
           _noAssignment = true;
@@ -58,9 +64,10 @@ class _StatusPageState extends State<StatusPage> {
       }
 
       final assignmentId = ambulanceDoc.data()?['currentAssignment'];
-      
+
       // Verify this is an accepted assignment
-      final recipientQuery = await _firestore.collection('notification_recipients')
+      final recipientQuery = await _firestore
+          .collection('notification_recipients')
           .where('notificationId', isEqualTo: assignmentId)
           .where('recipientId', isEqualTo: userId)
           .where('status', isEqualTo: 'accepted')
@@ -89,17 +96,20 @@ class _StatusPageState extends State<StatusPage> {
   Future<void> _loadAssignmentDetails(String assignmentId) async {
     try {
       // Get notification details
-      final notification = await _firestore.collection('notifications').doc(assignmentId).get();
+      final notification =
+          await _firestore.collection('notifications').doc(assignmentId).get();
       if (!notification.exists) throw Exception('Notification not found');
 
       // Get accident details
       final accidentId = notification['accidentId'];
-      final accident = await _firestore.collection('accidents').doc(accidentId).get();
+      final accident =
+          await _firestore.collection('accidents').doc(accidentId).get();
       if (!accident.exists) throw Exception('Accident not found');
 
       // Get victim info
       final victimId = accident['userId'];
-      final victim = await _firestore.collection('user_info').doc(victimId).get();
+      final victim =
+          await _firestore.collection('user_info').doc(victimId).get();
 
       setState(() {
         _assignment = {
@@ -138,8 +148,6 @@ class _StatusPageState extends State<StatusPage> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      
-
       // If completed, clear ambulance assignment
       if (newStatus == 'completed') {
         await _firestore.collection('ambulance_info').doc(userId).update({
@@ -148,15 +156,16 @@ class _StatusPageState extends State<StatusPage> {
         });
 
         // Update notification recipient status
-        await _firestore.collection('notification_recipients')
+        await _firestore
+            .collection('notification_recipients')
             .where('notificationId', isEqualTo: _assignment!['id'])
             .where('recipientId', isEqualTo: userId)
             .get()
             .then((snapshot) {
-              for (var doc in snapshot.docs) {
-                doc.reference.update({'status': 'completed'});
-              }
-            });
+          for (var doc in snapshot.docs) {
+            doc.reference.update({'status': 'completed'});
+          }
+        });
       }
 
       setState(() {
@@ -165,12 +174,38 @@ class _StatusPageState extends State<StatusPage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Status updated to ${_getStatusDisplay(newStatus)}')),
+        SnackBar(
+          content: Text(
+            'Status updated to ${_getStatusDisplay(newStatus)}',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.green[600],
+          behavior: SnackBarBehavior.floating,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: EdgeInsets.all(16),
+          duration: Duration(seconds: 3),
+        ),
       );
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update status: $e')),
+        SnackBar(
+          content: Text(
+            'Failed to update status: $e',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: EdgeInsets.all(16),
+          duration: Duration(seconds: 4),
+        ),
       );
     }
   }
@@ -182,7 +217,7 @@ class _StatusPageState extends State<StatusPage> {
   Widget _buildStatusButton(String status) {
     final statusIndex = _statusOptions.indexOf(status);
     final currentIndex = _statusOptions.indexOf(_currentStatus);
-    
+
     bool isCurrent = _currentStatus == status;
     bool isNext = statusIndex == currentIndex + 1;
     bool isAvailable = isCurrent || isNext;
@@ -190,12 +225,15 @@ class _StatusPageState extends State<StatusPage> {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4),
       child: ElevatedButton(
-        onPressed: isAvailable && !_isLoading ? () => _updateStatus(status) : null,
+        onPressed:
+            isAvailable && !_isLoading ? () => _updateStatus(status) : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isCurrent ? Colors.blue : (isAvailable ? Colors.green : Colors.grey),
+          backgroundColor: isCurrent
+              ? Colors.blue
+              : (isAvailable ? Colors.green : Colors.grey),
           minimumSize: Size(double.infinity, 50),
         ),
-        child: _isLoading && isAvailable 
+        child: _isLoading && isAvailable
             ? CircularProgressIndicator(color: Colors.white)
             : Text(_getStatusDisplay(status)),
       ),
@@ -215,8 +253,9 @@ class _StatusPageState extends State<StatusPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('VICTIM INFORMATION', 
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            Text('VICTIM INFORMATION',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
             Divider(),
             Text('Name: ${_victimInfo!['name'] ?? 'Unknown'}'),
             SizedBox(height: 8),
@@ -230,10 +269,11 @@ class _StatusPageState extends State<StatusPage> {
               Text('Allergies: ${medical['allergies'].join(', ')}'),
             ],
             SizedBox(height: 16),
-            Text('EMERGENCY CONTACT', 
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            Text('EMERGENCY CONTACT',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
             Divider(),
-            if (emergencyContact['name'] != null) 
+            if (emergencyContact['name'] != null)
               Text('Name: ${emergencyContact['name']}'),
             if (emergencyContact['relation'] != null) ...[
               SizedBox(height: 8),
@@ -250,43 +290,177 @@ class _StatusPageState extends State<StatusPage> {
   }
 
   Widget _buildAssignmentInfo() {
-    if (_assignment == null) return SizedBox();
+  if (_assignment == null) return SizedBox();
 
-    final accident = _assignment!['accidentData'];
-    final timestamp = accident['timestamp']?.toDate();
+  final accident = _assignment!['accidentData'];
+  final timestamp = accident['timestamp']?.toDate();
 
-    return Card(
-      margin: EdgeInsets.all(12),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('ACCIDENT DETAILS', 
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-            Divider(),
-            Text('Location: ${accident['location'] ?? 'Unknown'}'),
-            if (timestamp != null) ...[
-              SizedBox(height: 8),
-              Text('Time: ${DateFormat('MMM d, y - h:mm a').format(timestamp)}'),
-            ],
-            SizedBox(height: 8),
-            Text('Current Status: ${_getStatusDisplay(_currentStatus)}'),
+  return Card(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
+    elevation: 3,
+    child: Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ACCIDENT DETAILS',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.redAccent,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Divider(color: Colors.grey.shade400, thickness: 1),
+          if (accident['location'] != null) ...[
+            Row(
+              children: [
+                Icon(Icons.location_on_outlined,
+                    size: 20, color: Color(0xFF085899)),
+                SizedBox(width: 6),
+                Text(
+                  "Location",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF085899),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6),
+            OutlinedButton.icon(
+              onPressed: () async {
+                // Example static Google Maps link
+                final url = Uri.parse(
+                    'https://www.google.com/maps/search/?api=1&query=26.2332,50.5477');
+                // Use UrlLauncher here if needed.
+              },
+              icon: Icon(Icons.map_outlined, size: 18),
+              label: Text(
+                "View on Map",
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Color(0xFF085899),
+                side: BorderSide(color: Color(0xFF085899), width: 1.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            SizedBox(height: 12),
           ],
-        ),
+          if (timestamp != null) ...[
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 18, color:Color(0xFF085899)),
+                SizedBox(width: 6),
+                Text(
+                  'Time: ${DateFormat('MMM d, y - h:mm a').format(timestamp)}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF085899), 
+
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+          ],
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 18, color: Color(0xFF085899)),
+              SizedBox(width: 6),
+              Text(
+                'Current Status: ',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF085899), // ✅ Correct
+
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  _getStatusDisplay(_currentStatus),
+                  style: TextStyle(
+                    color: Color(0xFF085899),
+                    fontWeight: FontWeight.w900,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Accident Status"),
+        title: Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Accident Status',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0D5D9F),
+                ),
+              ),
+            ],
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        shadowColor: Colors.blue.shade100,
+        toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top + 30,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(15),
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _loadCurrentAssignment,
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D5D9F).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.logout,
+                  color: Color(0xFF0D5D9F),
+                  size: 24,
+                ),
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.of(context).pushReplacementNamed('/login');
+              },
+            ),
           ),
         ],
       ),
@@ -297,37 +471,90 @@ class _StatusPageState extends State<StatusPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.assignment, size: 48, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No active assignments'),
-                      SizedBox(height: 8),
-                      ElevatedButton(
+                      Icon(Icons.assignment, size: 80, color: Colors.grey[400]),
+                      SizedBox(height: 20),
+                      Text(
+                        'No Active Assignments',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      ElevatedButton.icon(
                         onPressed: _loadCurrentAssignment,
-                        child: Text('Refresh'),
+                        icon: Icon(Icons.refresh),
+                        label: Text('Refresh'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          textStyle: TextStyle(fontSize: 16),
+                        ),
                       ),
                     ],
                   ),
                 )
               : SingleChildScrollView(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(16),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildAssignmentInfo(),
+                      _buildSectionCard(
+                          "Assignment Info", _buildAssignmentInfo()),
                       SizedBox(height: 16),
-                      _buildVictimInfo(),
+                      _buildSectionCard("Victim Info", _buildVictimInfo()),
                       SizedBox(height: 24),
-                      Text(
-                        'UPDATE STATUS',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      Center(
+                        child: Text(
+                          'Update Status',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
                         ),
                       ),
-                      SizedBox(height: 8),
-                      ..._statusOptions.map(_buildStatusButton),
+                      SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children:
+                            _statusOptions.map(_buildStatusButton).toList(),
+                      ),
                     ],
                   ),
                 ),
+    );
+  }
+
+// Helper for reusable card styling
+  Widget _buildSectionCard(String title, Widget content) {
+    return Card(
+      color: Colors.blue[50],
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey[700],
+              ),
+            ),
+            SizedBox(height: 12),
+            content,
+          ],
+        ),
+      ),
     );
   }
 }

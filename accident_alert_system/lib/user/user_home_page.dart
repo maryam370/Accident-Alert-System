@@ -32,16 +32,86 @@ class _UserHomePageState extends State<UserHomePage> {
     return Scaffold(
       
       body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
+   bottomNavigationBar: Container(
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Colors.blue.shade800,
+        Colors.blue.shade600,
+      ],
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.1),
+        blurRadius: 10,
+        spreadRadius: 2,
+        offset: Offset(0, -2),
       ),
+    ],
+  ),
+  child: BottomNavigationBar(
+    currentIndex: _currentIndex,
+    onTap: (index) => setState(() => _currentIndex = index),
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    selectedItemColor: Colors.white,
+    unselectedItemColor: Colors.white.withOpacity(0.7),
+    selectedLabelStyle: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+    ),
+    unselectedLabelStyle: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+    ),
+    type: BottomNavigationBarType.fixed,
+    items: [
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _currentIndex == 0 
+                ? Colors.white.withOpacity(0.2) 
+                : Colors.transparent,
+          ),
+          child: Icon(Icons.home_filled),
+        ),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _currentIndex == 1 
+                ? Colors.white.withOpacity(0.2) 
+                : Colors.transparent,
+          ),
+          child: Icon(Icons.history),
+        ),
+        label: 'History',
+      ),
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _currentIndex == 2 
+                ? Colors.white.withOpacity(0.2) 
+                : Colors.transparent,
+          ),
+          child: Icon(Icons.settings),
+        ),
+        label: 'Settings',
+      ),
+    ],
+  ),
+),
+
     );
   }
 }
@@ -51,7 +121,8 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>with TickerProviderStateMixin {
+    late AnimationController _carAnimationController;
   bool _isDialogShowing = false; // Add this flag
   bool _isMonitoring = false;
   int _count = 0;
@@ -73,12 +144,19 @@ final _notificationRecipientsCollection = FirebaseFirestore.instance.collection(
   @override
   void initState() {
     super.initState();
+     _carAnimationController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this, // This now works because we added TickerProviderStateMixin
+    )..repeat(reverse: true);
     _initializeFirebase();
     _requestLocatoinPermission();
+   
   }
 
 @override
   void dispose() {
+    _accidentStatusSubscription?.cancel();
+    _carAnimationController.dispose();
     _accidentStatusSubscription?.cancel();
     super.dispose();
   }
@@ -152,20 +230,48 @@ Future<void> _setupNotifications() async {
           setState(() => _isDialogShowing = false);
         });
 
-        return AlertDialog(
-          title: Text('Accident Detected!'),
-          content: Text('Emergency services will be notified in 10 seconds unless canceled'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _notificationCancelled = true;
-                Navigator.of(context).pop();
-                setState(() => _isDialogShowing = false);
-              },
-              child: Text('CANCEL'),
-            ),
-          ],
-        );
+       return AlertDialog(
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  backgroundColor: Colors.white,
+  title: Row(
+    children: [
+      Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+      SizedBox(width: 10),
+      Text(
+        'Accident Detected!',
+        style: TextStyle(
+          color: Colors.redAccent,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+        ),
+      ),
+    ],
+  ),
+  content: Text(
+    'Emergency services will be notified in 10 seconds unless canceled.',
+    style: TextStyle(fontSize: 16),
+  ),
+  actionsAlignment: MainAxisAlignment.end,
+  actions: [
+    TextButton(
+      onPressed: () {
+        _notificationCancelled = true;
+        Navigator.of(context).pop();
+        setState(() => _isDialogShowing = false);
+      },
+      style: TextButton.styleFrom(
+        backgroundColor: Colors.redAccent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      ),
+      child: Text(
+        'CANCEL',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+    ),
+  ],
+);
+
       },
     );
   }
@@ -188,7 +294,6 @@ Future<void> _saveAccidentToFirestore() async {
         'status': 'detected',
         'assignedAmbulanceId': '',
         'assignedHospitalId': '',
-        'assignedPoliceId': '',
       });
 
       _currentAccidentId = accidentRef.id;
@@ -245,7 +350,7 @@ Future<void> _saveAccidentToFirestore() async {
         Uri.parse(serverUrl),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
-          'token': _fcmToken, 
+          //'token': _fcmToken, 
           'title': _getNotificationTitle(status),
           'body': _getNotificationBody(status),
           'data': {
@@ -303,7 +408,7 @@ Future<void> _saveAccidentToFirestore() async {
   String _getStatusMessage(String status) {
     switch (status) {
       case 'detected':
-        return 'Accident detected! Help is on the way';
+        return 'Accident detected! Help is on the way!';
       case 'ambulance_dispatched':
         return 'Ambulance has been dispatched';
       case 'hospital_notified':
@@ -379,7 +484,7 @@ Future<void> _saveAccidentToFirestore() async {
         body: json.encode({
           'token': _fcmToken, 
           'title': 'Emergency Alert', 
-          'body': 'Accident detected! Help is on the way!'
+          'body': 'Accident detected! Help in on the way!'
         }),
       );
 
@@ -390,7 +495,7 @@ Future<void> _saveAccidentToFirestore() async {
           _showNotificationDialog(RemoteMessage(
             notification: RemoteNotification(
               title: 'Emergency Alert',
-              body: 'Accident detected! Help is on the way!',
+              body: 'Accident detected! Cancel if it was a false alarm!',
             ),
           ));
         }
@@ -430,99 +535,231 @@ Future<void> _saveAccidentToFirestore() async {
     });
   }
 
-    @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text('User Home Page'),
-      backgroundColor: Colors.blueAccent,
-      actions: [
-        IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: () async {
-            await FirebaseAuth.instance.signOut();
-            Navigator.of(context).pushReplacementNamed('/login');
-          },
-        ),
-      ],
+@override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+  title: Padding(
+    padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+    child: const Text(
+      'Monitor',
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 22,
+        color: Color(0xFF0D5D9F),
+      ),
     ),
-    body: _currentAccidentId != null
-        ? StreamBuilder<DocumentSnapshot>(
-            stream: _firestore
-                .collection('accidents')
-                .doc(_currentAccidentId)
-                .snapshots(),
-            builder: (context, snapshot) {
-              final status = snapshot.hasData
-                  ? snapshot.data!.get('status') ?? 'detected'
-                  : 'detected';
-
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _getStatusIcon(status),
-                      size: 64,
-                      color: _getStatusColor(status),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      _getStatusTitle(status),
-                      style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      _getStatusMessage(status),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    SizedBox(height: 30),
-                    if (status == 'resolved')
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _currentAccidentId = null;
-                            _accidentStatusSubscription?.cancel();
-                          });
-                        },
-                        child: Text('RETURN TO MONITORING'),
-                      ),
-                  ],
-                ),
-              );
-            },
-          )
-        : Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _isMonitoring
-                      ? 'Monitoring: $_count/10'
-                      : 'Ready to monitor',
-                  style: TextStyle(fontSize: 24),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _isMonitoring ? _stopMonitoring : _startMonitoring,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isMonitoring ? Colors.red : Colors.blue,
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 15),
-                  ),
-                  child: Text(
-                    _isMonitoring ? 'STOP MONITORING' : 'START MONITORING',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
+  ),
+  centerTitle: true,
+  backgroundColor: Colors.white,
+  elevation: 0.5,
+  shadowColor: Colors.blue.shade100,
+  toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top,
+  automaticallyImplyLeading: false, // Soft blue shadow
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(
+      bottom: Radius.circular(15), // Rounded bottom corners
+    ),
+  ),
+  iconTheme: const IconThemeData(
+    color: Color(0xFF0D5D9F), // Matching blue for any leading icons
+  ),
+  actions: [
+    Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D5D9F).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
-  );
-}
+          child: const Icon(
+            Icons.logout,
+            color: Color(0xFF0D5D9F),
+            size: 24,
+          ),
+        ),
+        onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+          Navigator.of(context).pushReplacementNamed('/login');
+        },
+      ),
+    ),
+  ],
+),
+      body: Container(
+              color: Colors.white, // Simple white background
+
+      
+        child: _currentAccidentId != null
+            ? StreamBuilder<DocumentSnapshot>(
+                stream: _firestore
+                    .collection('accidents')
+                    .doc(_currentAccidentId)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final status = snapshot.hasData
+                      ? snapshot.data!.get('status') ?? 'detected'
+                      : 'detected';
+
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Card(
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(status).withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _getStatusIcon(status),
+                                  size: 64,
+                                  color: _getStatusColor(status),
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              Text(
+                                _getStatusTitle(status),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueGrey,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _getStatusMessage(status),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              if (status == 'resolved')
+                                ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _currentAccidentId = null;
+                                      _accidentStatusSubscription?.cancel();
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade800,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 40, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'RETURN TO MONITORING',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Animated car icon
+                      RotationTransition(
+                        turns: Tween(begin: -0.05, end: 0.05).animate(
+                          _carAnimationController,
+                        ),
+                        child: const Icon(
+                          Icons.directions_car,
+                          size: 100,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      Text(
+                        _isMonitoring
+                            ? 'Monitoring your journey...'//\n$_count/10 checks completed'
+                            : 'Ready to monitor your journey',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.blueGrey,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      Container(
+  width: double.infinity,
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      colors: [Colors.blue.shade300, Colors.blue.shade700],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    ),
+    borderRadius: BorderRadius.circular(50),
+  ),
+                      child: ElevatedButton(
+                        onPressed: _isMonitoring ? _stopMonitoring : _startMonitoring,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isMonitoring 
+                              ? Colors.red.shade600 
+                              : Colors.blue.shade800,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 40, vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 5,
+                          shadowColor: Colors.blue.withOpacity(0.3),
+                        ),
+                        child: Text(
+                          _isMonitoring ? 'STOP MONITORING' : 'START MONITORING',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),),
+                      const SizedBox(height: 20),
+                      if (_isMonitoring)
+                        const Text(
+                          'Drive safely! We\'ll alert you if we detect an accident',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
 
     // Helper methods for status UI
   IconData _getStatusIcon(String status) {

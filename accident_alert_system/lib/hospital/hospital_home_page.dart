@@ -16,6 +16,9 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
   bool _isLoading = true;
   Map<String, dynamic>? _hospitalInfo;
   StreamSubscription<QuerySnapshot>? _accidentsSubscription;
+    final Color _primaryColor = const Color(0xFF0D5D9F); // Deep blue
+  final Color _cardColor = const Color(0xFFE6F2FF); // Light blue
+  final Color _accentColor = const Color(0xFF4A90E2); // Medium blue
 
   @override
   void initState() {
@@ -50,15 +53,15 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
       String? token = await FirebaseMessaging.instance.getToken();
       print("Hospital FCM Token: $token");
 
-      if (token != null) {
-        final userId = _auth.currentUser?.uid;
-        if (userId != null) {
-          await _firestore
-              .collection('hospital_info')
-              .doc(userId)
-              .update({'fcmToken': token});
-        }
-      }
+      // if (token != null) {
+      //   final userId = _auth.currentUser?.uid;
+      //   if (userId != null) {
+      //     await _firestore
+      //         .collection('hospital_info')
+      //         .doc(userId)
+      //         .update({'fcmToken': token});
+      //   }
+      // }
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         print('🏥 Hospital received FCM push while in foreground');
@@ -206,18 +209,23 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildCaseCard(Map<String, dynamic> caseData) {
+ Widget _buildCaseCard(Map<String, dynamic> caseData) {
     final victim = caseData['victim'];
     final ambulance = caseData['ambulance'];
     final emergencyContact = victim?['emergencyContact'];
 
     return Card(
-      margin: EdgeInsets.all(12),
+      color: _cardColor,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Case Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -225,99 +233,185 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
                   'CASE #${caseData['id'].substring(0, 6).toUpperCase()}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                    color: _primaryColor,
+                    fontSize: 16,
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  'Reported At: ${_formatDateTime(caseData['timestamp'])}',
-                  style: TextStyle(color: Colors.grey[700]),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(caseData['status']),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _formatAmbulanceStatus(caseData['status']),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            if (victim != null) ...[
-              Text(
-                'PATIENT INFORMATION',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
+            const SizedBox(height: 8),
+            Text(
+              'Reported At: ${_formatDateTime(caseData['timestamp'])}',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
               ),
-              Divider(),
-              Text('Name: ${victim['name'] ?? 'Unknown'}'),
-              if (victim['bloodGroup'] != null)
-                Text('Blood Type: ${victim['bloodGroup']}'),
-              if (victim['allergies'] != null && victim['allergies'].isNotEmpty)
-                Text('Allergies: ${victim['allergies'].join(', ')}'),
-              SizedBox(height: 8),
-              if (emergencyContact != null) ...[
-                Text(
-                  'EMERGENCY CONTACT',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-                Divider(),
-                Text('Name: ${emergencyContact['name']}'),
-                Text('Relation: ${emergencyContact['relation']}'),
-                Text('Phone: ${emergencyContact['number']}'),
-              ],
-            ],
-            SizedBox(height: 12),
-            if (ambulance != null) ...[
-              Text(
-                'AMBULANCE INFORMATION',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              Divider(),
-              Text('Name: ${ambulance['name']}'),
-              Text('Service area: ${ambulance['serviceArea']}'),
-              StreamBuilder<QuerySnapshot>(
-                stream: _firestore
-                    .collection('statusUpdates')
-                    .where('accidentId', isEqualTo: caseData['id'])
-                    .limit(1)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Text('Status: Loading...');
-                  }
-                  if (snapshot.hasError ||
-                      !snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
-                    return Text('Status: Not Dispatched');
-                  }
+            ),
+            const SizedBox(height: 16),
 
-                  final statusUpdate =
-                      snapshot.data!.docs.first.data() as Map<String, dynamic>;
-                  return Text(
-                      'Status: ${_formatAmbulanceStatus(statusUpdate['updateType'])}');
-                },
-              ),
-            ],
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _confirmAdmission(caseData['id']),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                  child: Text('CONFIRM ADMISSION'),
-                ),
+            // Patient Information
+            _buildInfoSection(
+              icon: Icons.person_outlined,
+              title: 'PATIENT INFORMATION',
+              items: [
+                _buildInfoRow('Name', victim?['name'] ?? 'Unknown'),
+                if (victim?['bloodGroup'] != null)
+                  _buildInfoRow('Blood Type', victim!['bloodGroup']),
+                if (victim?['allergies'] != null && victim!['allergies'].isNotEmpty)
+                  _buildInfoRow('Allergies', victim!['allergies'].join(', ')),
               ],
+            ),
+
+            // Emergency Contact
+            if (emergencyContact != null)
+              _buildInfoSection(
+                icon: Icons.emergency_outlined,
+                title: 'EMERGENCY CONTACT',
+                items: [
+                  _buildInfoRow('Name', emergencyContact['name']),
+                  _buildInfoRow('Relation', emergencyContact['relation']),
+                  _buildInfoRow('Phone', emergencyContact['number']),
+                ],
+              ),
+
+            // Ambulance Information
+            if (ambulance != null)
+              _buildInfoSection(
+                icon: Icons.medical_services_outlined,
+                title: 'AMBULANCE DETAILS',
+                items: [
+                  _buildInfoRow('Driver', ambulance['name']),
+                  _buildInfoRow('Service Area', ambulance['serviceArea']),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('statusUpdates')
+                        .where('accidentId', isEqualTo: caseData['id'])
+                        .limit(1)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return _buildInfoRow('Status', 'Loading...');
+                      }
+                      if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return _buildInfoRow('Status', 'Not Dispatched');
+                      }
+                      final statusUpdate = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+                      return _buildInfoRow('Status', _formatAmbulanceStatus(statusUpdate['updateType']));
+                    },
+                  ),
+                ],
+              ),
+
+            // Action Button
+            const SizedBox(height: 16),
+            Center(
+              child: ElevatedButton(
+                onPressed: () => _confirmAdmission(caseData['id']),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'CONFIRM ADMISSION',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+Widget _buildInfoSection({
+    required IconData icon,
+    required String title,
+    required List<Widget> items,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Icon(icon, size: 20, color: _primaryColor),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: _primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const Divider(),
+        ...items,
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+    Color _getStatusColor(String status) {
+    switch (status) {
+      case 'ambulance_assigned':
+        return Colors.orange;
+      case 'en_route':
+        return Colors.blue;
+      case 'arrived':
+        return Colors.green;
+      case 'transporting':
+        return Colors.purple;
+      case 'arrived_at_hospital':
+        return Colors.teal;
+      default:
+        return Colors.grey;
+    }
   }
 
   String _formatAmbulanceStatus(String status) {
@@ -360,51 +454,99 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
     );
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hospital Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () => _setupActiveCasesListener(),
+        title: Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Alert',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0D5D9F),
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await _auth.signOut();
-              Navigator.of(context).pushReplacementNamed('/login');
-            },
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        shadowColor: Colors.blue.shade100,
+        toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top + 30,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(15),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D5D9F).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.logout,
+                  color: Color(0xFF0D5D9F),
+                  size: 24,
+                ),
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.of(context).pushReplacementNamed('/login');
+              },
+            ),
           ),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  if (_activeCases.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(Icons.medical_services,
-                                size: 48, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text('No active cases assigned'),
-                          ],
+          ? Center(
+              child: CircularProgressIndicator(color: _primaryColor),
+            )
+          : _activeCases.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.medical_services_outlined,
+                        size: 48,
+                        color: _primaryColor.withOpacity(0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No active cases assigned',
+                        style: TextStyle(
+                          color: _primaryColor.withOpacity(0.7),
+                          fontSize: 16,
                         ),
                       ),
-                    )
-                  else
-                    ..._activeCases
-                        .map((caseData) => _buildCaseCard(caseData))
-                        .toList(),
-                ],
-              ),
-            ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  color: _primaryColor,
+                  onRefresh: () async {
+                    setState(() => _isLoading = true);
+                    _setupActiveCasesListener();
+                    return Future.delayed(const Duration(seconds: 1));
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _activeCases.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) => _buildCaseCard(_activeCases[index]),
+                  ),
+                ),
     );
   }
 }

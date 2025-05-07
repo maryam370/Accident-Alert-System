@@ -42,9 +42,7 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
           ? await _getHospitalName(data['assignedHospitalId']) 
           : "Not Assigned";
           
-      data['policeName'] = data['assignedPoliceId'] != null 
-          ? await _getPoliceName(data['assignedPoliceId']) 
-          : "Not Assigned";
+    
 
       accidentDetails.add(data);
     }
@@ -79,17 +77,7 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
     return "Hospital (Unknown)";
   }
 
-  Future<String> _getPoliceName(String policeId) async {
-    try {
-      DocumentSnapshot policeDoc = await _firestore.collection('police_info').doc(policeId).get();
-      if (policeDoc.exists) {
-        return policeDoc.get('name') ?? "Police Station (Unknown)";
-      }
-    } catch (e) {
-      print("Error fetching police name: $e");
-    }
-    return "Police Station (Unknown)";
-  }
+ 
 
   String formatTimestamp(Timestamp timestamp) {
     final date = timestamp.toDate();
@@ -113,78 +101,108 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50, // Lighter background for contrast
       appBar: AppBar(
-        title: Column(
-          children: [
-            const SizedBox(height: 6),
-            const Text(
-              'History',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+        title: Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'History',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0D5D9F),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'View your past resolved incidents and their assigned responders.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
+              const SizedBox(height: 4),
+              Text(
+                'View your past resolved incidents',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF0D5D9F).withOpacity(0.8),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         centerTitle: true,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout, color: Colors.black),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.of(context).pushReplacementNamed('/login');
-            },
-          ),
-        ],
-        shape: RoundedRectangleBorder(
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        shadowColor: Colors.blue.shade100,
+        toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top + 30,
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(30),
+            bottom: Radius.circular(15),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D5D9F).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.logout,
+                  color: Color(0xFF0D5D9F),
+                  size: 24,
+                ),
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.of(context).pushReplacementNamed('/login');
+              },
+            ),
+          ),
+        ],
       ),
       body: _isLoading
-          ? Center(
+          ? const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4361EE)),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
               ),
             )
           : RefreshIndicator(
               onRefresh: _fetchData,
-              color: Color(0xFF4361EE),
+              color: Colors.blue.shade800,
               child: _accidents.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.history,
-                            size: 60,
-                            color: Colors.grey[400],
+                            Icons.history_toggle_off,
+                            size: 80,
+                            color: Colors.grey.shade300,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
-                            'No resolved accidents found',
+                            'No resolved incidents yet',
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.grey[600],
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Your resolved incidents will appear here',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
                             ),
                           ),
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 16),
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
                       itemCount: _accidents.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final accident = _accidents[index];
                         final timestamp = accident['timestamp'] as Timestamp;
@@ -192,23 +210,25 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
                         return AnimatedBuilder(
                           animation: _controller,
                           builder: (context, child) {
-                            return Opacity(
-                              opacity: _controller.value,
-                              child: Transform.translate(
-                                offset: Offset(0, 20 * (1 - _controller.value)),
+                            return FadeTransition(
+                              opacity: _controller,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.2),
+                                  end: Offset.zero,
+                                ).animate(_controller),
                                 child: child,
                               ),
                             );
                           },
                           child: Card(
-                            color: Color(0xFFEAF1FF), // Soft blue card background
-                            elevation: 4,
+                            elevation: 0, // Remove shadow for flat design
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            margin: const EdgeInsets.only(bottom: 16),
+                            color: Colors.lightBlue.shade50, // Light blue background
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                               onTap: () {},
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
@@ -218,56 +238,49 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
                                     Row(
                                       children: [
                                         Container(
-                                          padding: EdgeInsets.all(8),
+                                          padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Color(0xFF4361EE).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: Colors.green.withOpacity(0.1),
+                                            shape: BoxShape.circle,
                                           ),
-                                          child: Icon(
+                                          child: const Icon(
                                             Icons.check_circle,
-                                            color: Color(0xFF4361EE),
+                                            color: Colors.green,
                                             size: 24,
                                           ),
                                         ),
-                                        SizedBox(width: 12),
+                                        const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
                                             "Resolved Incident",
                                             style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF2E3B4E),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.blueGrey.shade800,
                                             ),
+                                          ),
+                                        ),
+                                        Text(
+                                          formatTimestamp(timestamp),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.blueGrey.shade600,
                                           ),
                                         ),
                                       ],
                                     ),
-                                    SizedBox(height: 12),
-                                    Divider(height: 1, color: Colors.grey[200]),
-                                    SizedBox(height: 12),
-                                    InfoRow(
-                                      icon: Icons.local_hospital,
-                                      label: "Hospital",
-                                      value: accident['hospitalName'],
-                                      color: Color(0xFF4361EE),
+                                    const SizedBox(height: 16),
+                                    _buildDetailRow(
+                                      Icons.local_hospital,
+                                      "Hospital",
+                                      accident['hospitalName'],
+                                      Colors.blue.shade700,
                                     ),
-                                    InfoRow(
-                                      icon: Icons.local_police,
-                                      label: "Police",
-                                      value: accident['policeName'],
-                                      color: Color(0xFF3A0CA3),
-                                    ),
-                                    InfoRow(
-                                      icon: Icons.medical_services,
-                                      label: "Ambulance",
-                                      value: accident['ambulanceName'],
-                                      color: Color(0xFF4CC9F0),
-                                    ),
-                                    InfoRow(
-                                      icon: Icons.access_time,
-                                      label: "Time",
-                                      value: formatTimestamp(timestamp),
-                                      color: Colors.grey[600]!,
+                                    _buildDetailRow(
+                                      Icons.medical_services,
+                                      "Ambulance",
+                                      accident['ambulanceName'],
+                                      Colors.teal.shade700,
                                     ),
                                   ],
                                 ),
@@ -280,7 +293,49 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
             ),
     );
   }
+
+  Widget _buildDetailRow(IconData icon, String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.blueGrey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blueGrey.shade800,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
+
 
 class InfoRow extends StatelessWidget {
   final IconData icon;

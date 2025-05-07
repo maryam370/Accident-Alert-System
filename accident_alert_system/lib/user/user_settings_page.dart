@@ -88,27 +88,56 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
    appBar: AppBar(
-  title: Text(
-    'Settings',
-    style: TextStyle(
-      fontWeight: FontWeight.w600,
-      fontSize: 22,
-      color: Colors.black,
-    ),
-  ),
-  backgroundColor: Colors.transparent,
-  elevation: 0,
-  centerTitle: true, // This centers the title
-  actions: [
-    IconButton(
-      icon: Icon(Icons.logout, size: 24, color: Colors.black),
-      onPressed: () async {
-        await FirebaseAuth.instance.signOut();
-        Navigator.of(context).pushReplacementNamed('/login');
-      },
-    ),
-  ],
-),
+        title: Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Settings',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0D5D9F),
+                ),
+              ),
+            ],
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        shadowColor: Colors.blue.shade100,
+        toolbarHeight: kToolbarHeight + MediaQuery.of(context).padding.top + 30,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(15),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D5D9F).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.logout,
+                  color: Color(0xFF0D5D9F),
+                  size: 24,
+                ),
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.of(context).pushReplacementNamed('/login');
+              },
+            ),
+          ),
+        ],
+      ),
 
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -388,28 +417,30 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
 
               // Save Button
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: ElevatedButton(
-                  onPressed: _saveSettings,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    backgroundColor: Colors.blue[900],
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'SAVE CHANGES',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
+              Container(
+  width: double.infinity,
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      colors: [Colors.blue.shade300, Colors.blue.shade700],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    ),
+    borderRadius: BorderRadius.circular(50),
+  ),
+  child: ElevatedButton(
+    onPressed: _saveSettings,
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.transparent,
+      shadowColor: Colors.transparent, // Removes default shadow color
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+    ),
+    child: const Text(
+      "Save Info",
+      style: TextStyle(fontSize: 16, color: Colors.white),
+    ),
+  ),
+),
               SizedBox(height: 24),
             ],
           ),
