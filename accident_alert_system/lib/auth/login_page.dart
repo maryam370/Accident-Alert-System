@@ -8,6 +8,10 @@ import 'package:accident_alert_system/hospital/hospital_home_page.dart';
 import 'package:accident_alert_system/ambulance/ambulance_home_page.dart';
 import 'package:accident_alert_system/admin/admin_home_page.dart';
 import 'package:flutter/animation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -61,7 +65,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.dispose();
   }
 
-  Future<void> loginUser(BuildContext context) async {
+Future<void> loginUser(BuildContext context) async {
   if (_formKey.currentState?.validate() ?? false) {
     setState(() => _isLoading = true);
 
@@ -69,6 +73,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final password = passwordController.text.trim();
 
     try {
+      // Attempt to sign in the user
       final userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
@@ -85,6 +90,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         return;
       }
 
+      // Fetch the user's document from Firestore
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
@@ -93,22 +99,22 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       if (userDoc.exists) {
         final role = userDoc.data()?['role'];
         Widget? homePage;
-        
+
         switch (role) {
           case 'user':
-            homePage =  UserHomePage();
+            homePage = UserHomePage();
             break;
           case 'Police':
-            homePage =  PoliceHomePage();
+            homePage = PoliceHomePage();
             break;
           case 'Hospital':
-            homePage =  HospitalHomePage();
+            homePage = HospitalHomePage();
             break;
           case 'Ambulance':
-            homePage =  AmbulanceHomePage();
+            homePage = AmbulanceHomePage();
             break;
           case 'Admin':
-            homePage =  AdminHomePage();
+            homePage = AdminHomePage();
             break;
           default:
             ScaffoldMessenger.of(context).showSnackBar(
@@ -123,6 +129,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
             return;
         }
 
+        // // After user login, store their UID in SharedPreferences
+        // SharedPreferences prefs = await SharedPreferences.getInstance();
+        // await prefs.setString('uid', userCredential.user!.uid);
+
+        // // Send the UID to Firebase Realtime Database for hardware to listen
+        // await FirebaseDatabase.instance
+        //     .ref("hardware/connectedUID")
+        //     .set(userCredential.user!.uid);
+
+        // Navigate to the corresponding home page
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
@@ -146,30 +162,30 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
         );
       }
-    }  on FirebaseAuthException catch (e) {
-  String errorMessage;
-  switch (e.code) {
-    case 'invalid-email':
-    case 'user-disabled':
-    case 'user-not-found':
-    case 'wrong-password':
-      errorMessage = 'Incorrect email or password. Please try again.';
-      break;
-    default:
-      errorMessage = 'Incorrect email or password. Please try again..';
-  }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'invalid-email':
+        case 'user-disabled':
+        case 'user-not-found':
+        case 'wrong-password':
+          errorMessage = 'Incorrect email or password. Please try again.';
+          break;
+        default:
+          errorMessage = 'Incorrect email or password. Please try again.';
+      }
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(errorMessage),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(10.0)),
-      ),
-      backgroundColor: Colors.red,
-    ),
-  );
-}catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10.0)),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('An error occurred. Please try again.'),
@@ -185,6 +201,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
   }
 }
+
 
   void forgotPassword(BuildContext context) {
   final emailController = TextEditingController();

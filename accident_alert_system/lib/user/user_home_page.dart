@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:location/location.dart';
@@ -343,7 +344,7 @@ Future<void> _saveAccidentToFirestore() async {
   Future<void> _sendStatusNotification(String status) async {
     if (_fcmToken == null) return;
 
-    const serverUrl = 'http://10.0.2.2:3000/send-notification';
+    const serverUrl = 'http://192.168.52.170:3000/send-notification';
     
     try {
       final response = await http.post(
@@ -475,7 +476,7 @@ Future<void> _saveAccidentToFirestore() async {
  Future<void> _sendNotification() async {
     if (_fcmToken == null) return;
 
-    const serverUrl = 'http://10.0.2.2:3000/send-notification';
+    const serverUrl = 'http://192.168.52.170:3000/send-notification';
     
     try {
       final response = await http.post(
@@ -504,29 +505,38 @@ Future<void> _saveAccidentToFirestore() async {
       print('Error sending notification: $e');
     }
   }
+void _startMonitoring() {
+  setState(() {
+    _isMonitoring = true;
+    _count = 0;
+    _notificationCancelled = false;
+  });
 
-  void _startMonitoring() {
-    setState(() {
-      _isMonitoring = true;
-      _count = 0;
-      _notificationCancelled = false;
-    });
-    _countdownLoop();
-  }
+  final String userId = FirebaseAuth.instance.currentUser!.uid;
+  DatabaseReference flagRef = FirebaseDatabase.instance.ref("monitoring/$userId/flag");
 
-  void _countdownLoop() {
-    Future.delayed(Duration(seconds: 1), () {
-      if (_isMonitoring && _count < 10) {
-        setState(() => _count++);
-        if (_count == 10) {
-          _sendNotification(); // Automatically send notification
-          setState(() => _isMonitoring = false);
-        } else {
-          _countdownLoop();
-        }
-      }
-    });
-  }
+  flagRef.onValue.listen((DatabaseEvent event) {
+    final flagValue = event.snapshot.value;
+    if (flagValue == true && !_notificationCancelled) {
+      _sendNotification();
+      setState(() => _isMonitoring = false);
+    }
+  });
+}
+
+  // void _countdownLoop() {
+  //   Future.delayed(Duration(seconds: 1), () {
+  //     if (_isMonitoring && _count < 10) {
+  //       setState(() => _count++);
+  //       if (_count == 10) {
+  //         _sendNotification(); // Automatically send notification
+  //         setState(() => _isMonitoring = false);
+  //       } else {
+  //         _countdownLoop();
+  //       }
+  //     }
+  //   });
+  // }
 
   void _stopMonitoring() {
     setState(() {

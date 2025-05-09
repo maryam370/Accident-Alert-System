@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-//import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
@@ -192,18 +192,18 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
     });
     _setupCasesListener();
   }
-//   Future<void> _openMap(String lat, String lon) async {
-//   try {
-//     final googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
-//     if (await canLaunchUrl(googleMapsUrl)) {
-//       await launchUrl(googleMapsUrl);
-//     } else {
-//       throw 'Could not launch map URL';
-//     }
-//   } catch (e) {
-//     print("Error launching map: $e");
-//   }
-// }
+  Future<void> _openMap(String lat, String lon) async {
+  try {
+    final googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(googleMapsUrl);
+    } else {
+      throw 'Could not launch map URL';
+    }
+  } catch (e) {
+    print("Error launching map: $e");
+  }
+}
 
 
   Widget _buildCaseCard(Map<String, dynamic> caseData) {
@@ -318,9 +318,9 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
   ),
   OutlinedButton(
     onPressed: () async {
-      // final lat = location['latitude'].toString();
-      // final lon = location['longitude'].toString();
-      // await _openMap(lat, lon);
+      final lat = location['latitude'].toString();
+      final lon = location['longitude'].toString();
+      await _openMap(lat, lon);
     },
     style: OutlinedButton.styleFrom(
       foregroundColor: const Color.fromARGB(255, 8, 88, 153),

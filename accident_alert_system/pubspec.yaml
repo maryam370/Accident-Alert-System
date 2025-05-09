@@ -40,6 +40,8 @@ dependencies:
   firebase_database: any
   firebase_messaging : any
   location: any
+  shared_preferences: any
+  url_launcher: any
 
 
   
