@@ -193,10 +193,14 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
     _setupCasesListener();
   }
   Future<void> _openMap(String lat, String lon) async {
+  final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+
   try {
-    final googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
     if (await canLaunchUrl(googleMapsUrl)) {
-      await launchUrl(googleMapsUrl);
+      await launchUrl(
+        googleMapsUrl,
+        mode: LaunchMode.externalApplication, // <-- Add this!
+      );
     } else {
       throw 'Could not launch map URL';
     }
@@ -204,6 +208,7 @@ class _PoliceHomePageState extends State<PoliceHomePage> {
     print("Error launching map: $e");
   }
 }
+
 
 
   Widget _buildCaseCard(Map<String, dynamic> caseData) {

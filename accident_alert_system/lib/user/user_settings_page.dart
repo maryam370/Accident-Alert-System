@@ -53,22 +53,21 @@ class _SettingsPageState extends State<SettingsPage> {
       final data = doc.data()!;
       setState(() {
         _phoneNumberController.text = data['phoneNumber'] ?? '';
-        _bloodGroupController.text = data['medicalRecords']?['bloodGroup'] ?? '';
-        _emergencyNameController.text = 
+        _bloodGroupController.text =
+            data['medicalRecords']?['bloodGroup'] ?? '';
+        _emergencyNameController.text =
             data['medicalRecords']?['emergencyContact']?['name'] ?? '';
-        _emergencyNumberController.text = 
+        _emergencyNumberController.text =
             data['medicalRecords']?['emergencyContact']?['number'] ?? '';
-        _emergencyRelationController.text = 
+        _emergencyRelationController.text =
             data['medicalRecords']?['emergencyContact']?['relation'] ?? '';
         _dateOfBirth = data['dateOfBirth']?.toDate();
-        _allergies = List<String>.from(data['medicalRecords']?['allergies'] ?? []);
+        _allergies =
+            List<String>.from(data['medicalRecords']?['allergies'] ?? []);
         _allergiesController.text = _allergies.join(', ');
-        
       });
     }
   }
-
- 
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -87,7 +86,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-   appBar: AppBar(
+      appBar: AppBar(
         title: Padding(
           padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
           child: Column(
@@ -138,7 +137,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
-
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Form(
@@ -165,9 +163,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     prefixIcon: Icon(Icons.phone_outlined),
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   ),
                   keyboardType: TextInputType.phone,
                   validator: (value) =>
@@ -184,9 +186,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                      fillColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceVariant
+                          .withOpacity(0.4),
                       prefixIcon: Icon(Icons.calendar_today_outlined),
-                      contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                     ),
                     child: Text(
                       _dateOfBirth == null
@@ -204,12 +210,17 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'Medical Information',
                 icon: Icons.medical_information_outlined,
                 isExpanded: _showMedicalInfo,
-                onTap: () => setState(() => _showMedicalInfo = !_showMedicalInfo),
+                onTap: () =>
+                    setState(() => _showMedicalInfo = !_showMedicalInfo),
               ),
               if (_showMedicalInfo) ...[
                 SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _bloodGroupController.text.isNotEmpty ? _bloodGroupController.text : null,
+                  value: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                          .contains(_bloodGroupController.text)
+                      ? _bloodGroupController.text
+                      : null,
+                 
                   decoration: InputDecoration(
                     labelText: 'Blood Group',
                     border: OutlineInputBorder(
@@ -217,9 +228,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     prefixIcon: Icon(Icons.bloodtype_outlined),
-                    contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   ),
                   items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
                       .map((bloodType) => DropdownMenuItem(
@@ -227,7 +242,8 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: Text(bloodType),
                           ))
                       .toList(),
-                  onChanged: (value) => setState(() => _bloodGroupController.text = value!),
+                  onChanged: (value) =>
+                      setState(() => _bloodGroupController.text = value!),
                   borderRadius: BorderRadius.circular(12),
                   elevation: 2,
                   icon: Icon(Icons.arrow_drop_down_outlined),
@@ -242,7 +258,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     prefixIcon: Icon(Icons.health_and_safety_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(Icons.add_circle_outline),
@@ -255,7 +274,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         }
                       },
                     ),
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   ),
                   onChanged: (value) {
                     if (value.endsWith(',')) {
@@ -268,28 +288,36 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 SizedBox(height: 12),
                 if (_allergies.isNotEmpty) ...[
-                  Text('Current Allergies:', 
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                      ),
+                  Text(
+                    'Current Allergies:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                    ),
                   ),
                   SizedBox(height: 8),
-                  
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _allergies.map((allergy) => Chip(
-                      label: Text(allergy),
-                      deleteIcon: Icon(Icons.close, size: 16),
-                      onDeleted: () => setState(() => _allergies.remove(allergy)),
-                      shape: StadiumBorder(),
-                      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-                      labelStyle: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface),
-                    )).toList(),
+                    children: _allergies
+                        .map((allergy) => Chip(
+                              label: Text(allergy),
+                              deleteIcon: Icon(Icons.close, size: 16),
+                              onDeleted: () =>
+                                  setState(() => _allergies.remove(allergy)),
+                              shape: StadiumBorder(),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.surfaceVariant,
+                              labelStyle: TextStyle(
+                                  fontSize: 14,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface),
+                            ))
+                        .toList(),
                   ),
                   SizedBox(height: 16),
                 ],
@@ -314,9 +342,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     prefixIcon: Icon(Icons.person_outline),
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   ),
                   validator: (value) =>
                       value?.isEmpty ?? true ? 'Required' : null,
@@ -331,9 +363,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     prefixIcon: Icon(Icons.phone_outlined),
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   ),
                   keyboardType: TextInputType.phone,
                   validator: (value) =>
@@ -349,9 +385,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     prefixIcon: Icon(Icons.people_outline),
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   ),
                   validator: (value) =>
                       value?.isEmpty ?? true ? 'Required' : null,
@@ -371,7 +411,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 SizedBox(height: 12),
                 Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceVariant
+                        .withOpacity(0.4),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -418,29 +461,31 @@ class _SettingsPageState extends State<SettingsPage> {
 
               // Save Button
               Container(
-  width: double.infinity,
-  decoration: BoxDecoration(
-    gradient: LinearGradient(
-      colors: [Colors.blue.shade300, Colors.blue.shade700],
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
-    ),
-    borderRadius: BorderRadius.circular(50),
-  ),
-  child: ElevatedButton(
-    onPressed: _saveSettings,
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.transparent,
-      shadowColor: Colors.transparent, // Removes default shadow color
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-    ),
-    child: const Text(
-      "Save Info",
-      style: TextStyle(fontSize: 16, color: Colors.white),
-    ),
-  ),
-),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade300, Colors.blue.shade700],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: ElevatedButton(
+                  onPressed: _saveSettings,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor:
+                        Colors.transparent, // Removes default shadow color
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50)),
+                  ),
+                  child: const Text(
+                    "Save Info",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ),
               SizedBox(height: 24),
             ],
           ),
@@ -526,7 +571,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+        Icon(icon,
+            size: 20,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
         SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -553,37 +600,35 @@ class _SettingsPageState extends State<SettingsPage> {
           .collection('user_info')
           .doc(user.uid)
           .update({
-            'phoneNumber': _phoneNumberController.text,
-            'dateOfBirth': _dateOfBirth,
-            'medicalRecords': {
-              'bloodGroup': _bloodGroupController.text,
-              'allergies': _allergies,
-              'emergencyContact': {
-                'name': _emergencyNameController.text,
-                'number': _emergencyNumberController.text,
-                'relation': _emergencyRelationController.text,
-              }
-            }
-          });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Settings saved successfully'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ));
+        'phoneNumber': _phoneNumberController.text,
+        'dateOfBirth': _dateOfBirth,
+        'medicalRecords': {
+          'bloodGroup': _bloodGroupController.text,
+          'allergies': _allergies,
+          'emergencyContact': {
+            'name': _emergencyNameController.text,
+            'number': _emergencyNumberController.text,
+            'relation': _emergencyRelationController.text,
+          }
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Settings saved successfully'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save settings: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to save settings: $e'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ));
     }
   }
 

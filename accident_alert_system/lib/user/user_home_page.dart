@@ -4,12 +4,19 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:location/location.dart';
 import 'package:accident_alert_system/user/user_history_page.dart';
 import 'package:accident_alert_system/user/user_settings_page.dart';
 import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+import 'package:flutter/animation.dart';
+import 'package:flutter/widgets.dart';
+
 
 
 
@@ -116,13 +123,49 @@ class _UserHomePageState extends State<UserHomePage> {
     );
   }
 }
+class SensorData {
+  final double roll;
+  final double pitch;
+  final double accelTotal;
+  final int accidentFlag;
 
+  SensorData({
+    required this.roll,
+    required this.pitch,
+    required this.accelTotal,
+    required this.accidentFlag,
+  });
+
+  factory SensorData.fromJson(Map<String, dynamic> json) {
+    return SensorData(
+      roll: json['roll']?.toDouble() ?? 0.0,
+      pitch: json['pitch']?.toDouble() ?? 0.0,
+      accelTotal: json['accelTotal']?.toDouble() ?? 0.0,
+      accidentFlag: json['flag']?.toInt() ?? 0,
+    );
+  }
+}
+
+
+Future<SensorData?> fetchSensorData() async {
+  try {
+    final response = await http.get(Uri.parse('http://192.168.52.62/data')).timeout(Duration(seconds: 3));
+    if (response.statusCode == 200) {
+      return SensorData.fromJson(json.decode(response.body));
+    }
+  } catch (e) {
+    print('Error fetching sensor data: $e');
+  }
+  return null;
+}
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage>with TickerProviderStateMixin {
+  SensorData? _latestSensorData;
+Timer? _sensorPollingTimer;
     late AnimationController _carAnimationController;
   bool _isDialogShowing = false; // Add this flag
   bool _isMonitoring = false;
@@ -145,6 +188,7 @@ final _notificationRecipientsCollection = FirebaseFirestore.instance.collection(
   @override
   void initState() {
     super.initState();
+    _checkESP32Connection();
      _carAnimationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this, // This now works because we added TickerProviderStateMixin
@@ -161,6 +205,58 @@ final _notificationRecipientsCollection = FirebaseFirestore.instance.collection(
     _accidentStatusSubscription?.cancel();
     super.dispose();
   }
+
+
+Future<bool> _checkESP32Connection() async {
+  final esp32Url = 'http://192.168.52.62/data'; // Replace with your ESP32 IP
+
+  try {
+    final response = await http.get(Uri.parse(esp32Url)).timeout(Duration(seconds: 3));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data != null && data is Map && data.isNotEmpty) {
+        return true;
+      }
+    }
+  } catch (e) {
+    print('ESP32 not reachable: $e');
+  }
+
+  // Show dialog if unreachable
+  if (mounted) {
+    _showESP32WaitingDialog();
+  }
+  return false;
+}
+
+void _showESP32WaitingDialog() {
+  if (!mounted) return;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.sync_problem, color: Colors.orange),
+          SizedBox(width: 8),
+          Text("Waiting for ESP32"),
+        ],
+      ),
+      content: Text(
+        "Unable to retrieve data from the hardware. Please make sure the ESP32 is powered and connected to the same network.",
+        style: TextStyle(fontSize: 16),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
+
 
 
   Future<void> _initializeFirebase() async {
@@ -212,8 +308,7 @@ Future<void> _setupNotifications() async {
     // Handle background notification without showing dialog
     print('App opened from background notification');
   }
-
-  void _showNotificationDialog(RemoteMessage message) {
+void _showNotificationDialog(RemoteMessage message) {
     setState(() => _isDialogShowing = true);
     _notificationCancelled = false;
     
@@ -344,7 +439,8 @@ Future<void> _saveAccidentToFirestore() async {
   Future<void> _sendStatusNotification(String status) async {
     if (_fcmToken == null) return;
 
-    const serverUrl = 'http://192.168.52.170:3000/send-notification';
+   const serverUrl = 'https://accident-alert-system.onrender.com/send-notification';
+
     
     try {
       final response = await http.post(
@@ -399,11 +495,25 @@ Future<void> _saveAccidentToFirestore() async {
 
   void _showStatusUpdate(String status) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_getStatusMessage(status)),
-        duration: Duration(seconds: 3),
+  SnackBar(
+    content: Text(
+      _getStatusMessage(status),
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
       ),
-    );
+    ),
+    backgroundColor: Colors.indigo, 
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
   }
 
   String _getStatusMessage(String status) {
@@ -476,7 +586,8 @@ Future<void> _saveAccidentToFirestore() async {
  Future<void> _sendNotification() async {
     if (_fcmToken == null) return;
 
-    const serverUrl = 'http://192.168.52.170:3000/send-notification';
+   const serverUrl = 'https://accident-alert-system.onrender.com/send-notification';
+
     
     try {
       final response = await http.post(
@@ -505,45 +616,148 @@ Future<void> _saveAccidentToFirestore() async {
       print('Error sending notification: $e');
     }
   }
-void _startMonitoring() {
+void _startMonitoring() async {
   setState(() {
-    _isMonitoring = true;
-    _count = 0;
     _notificationCancelled = false;
   });
 
-  final String userId = FirebaseAuth.instance.currentUser!.uid;
-  DatabaseReference flagRef = FirebaseDatabase.instance.ref("monitoring/$userId/flag");
+  try {
+    // 1. Send POST to ESP32 to update monitor flag
+    final updateResponse = await http.post(
+      Uri.parse('http://192.168.52.62/update'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'isMonitoring=1',
+    );
 
-  flagRef.onValue.listen((DatabaseEvent event) {
-    final flagValue = event.snapshot.value;
-    if (flagValue == true && !_notificationCancelled) {
-      _sendNotification();
-      setState(() => _isMonitoring = false);
+    if (updateResponse.statusCode == 200) {
+      print('Monitor flag set successfully on ESP32');
+
+      // 2. Check if ESP32 is reachable
+      final response = await http.get(Uri.parse('http://192.168.52.62/data')).timeout(Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        setState(() => _isMonitoring = true);
+
+        // 3. Start polling sensor data
+        _sensorPollingTimer = Timer.periodic(Duration(milliseconds: 500), (timer) async {
+          if (!_isMonitoring) {
+            timer.cancel();
+            return;
+          }
+
+          final data = await fetchSensorData();
+          if (data != null) {
+            setState(() {
+              _latestSensorData = data;
+            });
+
+            if (data.accidentFlag == 1) {
+              _sendNotification();
+              setState(() => _isMonitoring = false);
+              timer.cancel();
+            }
+          }
+        });
+      } else {
+        _checkESP32Connection();
+      }
+    } else {
+      print('Failed to update monitor flag on ESP32');
+      _checkESP32Connection();
     }
+  } catch (e) {
+    print("ESP32 not reachable: $e");
+    _checkESP32Connection();
+  }
+}
+
+
+void _showAccidentDetectedDialog() {
+  setState(() => _isDialogShowing = true);
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      Future.delayed(Duration(seconds: 10), () {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (!_notificationCancelled) {
+          _saveAccidentToFirestore();
+        }
+        setState(() => _isDialogShowing = false);
+      });
+
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text(
+              'Accident Detected!',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Emergency services will be notified in 10 seconds unless canceled.',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _notificationCancelled = true;
+              Navigator.of(context).pop();
+              setState(() => _isDialogShowing = false);
+            },
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _stopMonitoring() async {
+  _sensorPollingTimer?.cancel();
+
+  try {
+    final stopResponse = await http.post(
+      Uri.parse('http://192.168.52.62/update'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'isMonitoring=0',
+    );
+
+    if (stopResponse.statusCode == 200) {
+      print('Monitor flag cleared on ESP32');
+    } else {
+      print('Failed to clear monitor flag on ESP32');
+    }
+  } catch (e) {
+    print("Error sending stop monitoring command: $e");
+  }
+
+  setState(() {
+    _isMonitoring = false;
+    _count = 0;
+    _latestSensorData = null;
   });
 }
 
-  // void _countdownLoop() {
-  //   Future.delayed(Duration(seconds: 1), () {
-  //     if (_isMonitoring && _count < 10) {
-  //       setState(() => _count++);
-  //       if (_count == 10) {
-  //         _sendNotification(); // Automatically send notification
-  //         setState(() => _isMonitoring = false);
-  //       } else {
-  //         _countdownLoop();
-  //       }
-  //     }
-  //   });
-  // }
-
-  void _stopMonitoring() {
-    setState(() {
-      _isMonitoring = false;
-      _count = 0;
-    });
-  }
 
 @override
   Widget build(BuildContext context) {
@@ -708,17 +922,22 @@ void _startMonitoring() {
                         ),
                       ),
                       const SizedBox(height: 30),
-                      Text(
-                        _isMonitoring
-                            ? 'Monitoring your journey...'//\n$_count/10 checks completed'
-                            : 'Ready to monitor your journey',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.blueGrey,
-                        ),
-                      ),
+                      Column(
+  children: [
+    Text(
+      _isMonitoring
+          ? 'Monitoring your journey...'
+          : 'Ready to monitor your journey',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w500,
+        color: Colors.blueGrey,
+      ),
+    ),
+    
+  ],
+),
                       const SizedBox(height: 40),
                       Container(
   width: double.infinity,

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 
 class AlertPage extends StatefulWidget {
@@ -62,19 +63,18 @@ class _AlertPageState extends State<AlertPage> {
           var caseData = doc.data();
           caseData['id'] = doc.id;
 
-          // Get ambulance details if assigned
-          if (caseData['assignedAmbulanceId'] != null) {
-            var ambulanceDoc = await _firestore.collection('ambulance_info')
-              .doc(caseData['assignedAmbulanceId']).get();
-            caseData['assignedAmbulance'] = ambulanceDoc.data();
-          }
+          if (caseData['assignedAmbulanceId'] != null && caseData['assignedAmbulanceId'].toString().isNotEmpty) {
+  var ambulanceDoc = await _firestore.collection('ambulance_info')
+    .doc(caseData['assignedAmbulanceId']).get();
+  caseData['assignedAmbulance'] = ambulanceDoc.data();
+}
 
           // Get hospital details if assigned
-          if (caseData['assignedHospitalId'] != null) {
-            var hospitalDoc = await _firestore.collection('hospital_info')
-              .doc(caseData['assignedHospitalId']).get();
-            caseData['assignedHospital'] = hospitalDoc.data();
-          }
+          if (caseData['assignedHospitalId'] != null && caseData['assignedHospitalId'].toString().isNotEmpty) {
+  var hospitalDoc = await _firestore.collection('hospital_info')
+    .doc(caseData['assignedHospitalId']).get();
+  caseData['assignedHospital'] = hospitalDoc.data();
+}
 
           casesWithDetails.add(caseData);
         }
@@ -110,6 +110,22 @@ class _AlertPageState extends State<AlertPage> {
       print('Error updating $field: $e');
     }
   }
+ Future<void> _openMap(String lat, String lon) async {
+  final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+
+  try {
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(
+        googleMapsUrl,
+        mode: LaunchMode.externalApplication, // <-- Add this!
+      );
+    } else {
+      throw 'Could not launch map URL';
+    }
+  } catch (e) {
+    print("Error launching map: $e");
+  }
+}
 
 Widget _buildCaseCard(Map<String, dynamic> caseData) {
   Timestamp timestamp = caseData['timestamp'];
@@ -168,7 +184,13 @@ Widget _buildCaseCard(Map<String, dynamic> caseData) {
                 ),
                 const SizedBox(height: 6),
                 OutlinedButton.icon(
-                  onPressed: () {}, //=>// _openMap(caseData['location']),
+                 onPressed: () async {
+  final location = caseData['location'];
+  final lat = location['latitude'].toString();
+  final lon = location['longitude'].toString();
+  await _openMap(lat, lon);
+},
+
                   icon: Icon(Icons.map_outlined, size: 18, color: primaryColor),
                   label: Text(
                     'View on Map',

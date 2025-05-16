@@ -298,22 +298,32 @@ class _HospitalHomePageState extends State<HospitalHomePage> {
                   _buildInfoRow('Driver', ambulance['name']),
                   _buildInfoRow('Service Area', ambulance['serviceArea']),
                   StreamBuilder<QuerySnapshot>(
-                    stream: _firestore
-                        .collection('statusUpdates')
-                        .where('accidentId', isEqualTo: caseData['id'])
-                        .limit(1)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return _buildInfoRow('Status', 'Loading...');
-                      }
-                      if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return _buildInfoRow('Status', 'Not Dispatched');
-                      }
-                      final statusUpdate = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-                      return _buildInfoRow('Status', _formatAmbulanceStatus(statusUpdate['updateType']));
-                    },
-                  ),
+  stream: _firestore
+      .collection('statusUpdates')
+      .where('accidentId', isEqualTo: caseData['id'])
+      .snapshots(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return _buildInfoRow('Status', 'Loading...');
+    }
+    if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return _buildInfoRow('Status', 'Transporting');
+    }
+
+    // Manually find the latest by timestamp
+    final latestDoc = snapshot.data!.docs.reduce((a, b) {
+      final aTime = (a['timestamp'] as Timestamp?)?.toDate() ?? DateTime(0);
+      final bTime = (b['timestamp'] as Timestamp?)?.toDate() ?? DateTime(0);
+      return aTime.isAfter(bTime) ? a : b;
+    });
+
+    final statusUpdate = latestDoc.data() as Map<String, dynamic>;
+    final updateType = statusUpdate['updateType'] ?? 'Unknown';
+
+    return _buildInfoRow('Status', _formatAmbulanceStatus(updateType.toString()));
+  },
+)
+
                 ],
               ),
 
@@ -449,9 +459,26 @@ Widget _buildInfoSection({
     setState(() {
       _activeCases.removeWhere((c) => c['id'] == caseId);
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Patient admission confirmed')),
-    );
+   ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text(
+      '✅ Patient admission confirmed',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.green[600],
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
   }
 
  @override

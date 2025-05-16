@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 
 class StatusPage extends StatefulWidget {
@@ -140,13 +141,15 @@ class _StatusPageState extends State<StatusPage> {
     if (userId == null) return;
 
     try {
-      // First create the status update record
-      await _firestore.collection('statusUpdates').add({
-        'accidentId': _assignment!['accidentId'],
-        'responderId': userId,
-        'updateType': newStatus,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      final docId = '${_assignment!['accidentId']}_$userId';
+
+await _firestore.collection('statusUpdates').doc(docId).set({
+  'accidentId': _assignment!['accidentId'],
+  'responderId': userId,
+  'updateType': newStatus,
+  'timestamp': FieldValue.serverTimestamp(),
+});
+
 
       // If completed, clear ambulance assignment
       if (newStatus == 'completed') {
@@ -288,6 +291,22 @@ class _StatusPageState extends State<StatusPage> {
       ),
     );
   }
+  Future<void> _openMap(String lat, String lon) async {
+  final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+
+  try {
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(
+        googleMapsUrl,
+        mode: LaunchMode.externalApplication, // <-- Add this!
+      );
+    } else {
+      throw 'Could not launch map URL';
+    }
+  } catch (e) {
+    print("Error launching map: $e");
+  }
+}
 
   Widget _buildAssignmentInfo() {
   if (_assignment == null) return SizedBox();
@@ -317,68 +336,66 @@ class _StatusPageState extends State<StatusPage> {
           ),
           Divider(color: Colors.grey.shade400, thickness: 1),
           if (accident['location'] != null) ...[
-            Row(
-              children: [
-                Icon(Icons.location_on_outlined,
-                    size: 20, color: Color(0xFF085899)),
-                SizedBox(width: 6),
-                Text(
-                  "Location",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF085899),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 6),
-            OutlinedButton.icon(
-              onPressed: () async {
-                // Example static Google Maps link
-                final url = Uri.parse(
-                    'https://www.google.com/maps/search/?api=1&query=26.2332,50.5477');
-                // Use UrlLauncher here if needed.
-              },
-              icon: Icon(Icons.map_outlined, size: 18),
-              label: Text(
-                "View on Map",
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Color(0xFF085899),
-                side: BorderSide(color: Color(0xFF085899), width: 1.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-            SizedBox(height: 12),
-          ],
-          if (timestamp != null) ...[
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 18, color:Color(0xFF085899)),
-                SizedBox(width: 6),
-                Text(
-                  'Time: ${DateFormat('MMM d, y - h:mm a').format(timestamp)}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF085899), 
 
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-          ],
+  Padding(
+    padding: const EdgeInsets.only(bottom: 8.0),
+    child: Row(
+      children: [
+        Icon(
+          Icons.location_on_outlined,
+          size: 18,
+          color: const Color.fromARGB(255, 8, 88, 153),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          "Location",
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color.fromARGB(255, 8, 88, 153),
+          ),
+        ),
+      ],
+    ),
+  ),
+  OutlinedButton(
+     onPressed: () async {
+  final location = accident['location'];
+  final lat = location['latitude'].toString();
+  final lon = location['longitude'].toString();
+  await _openMap(lat, lon);
+},
+
+    style: OutlinedButton.styleFrom(
+      foregroundColor: const Color.fromARGB(255, 8, 88, 153),
+      side: const BorderSide(
+        color: Color.fromARGB(255, 8, 88, 153),
+        width: 1.2,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.map_outlined, size: 18),
+        SizedBox(width: 6),
+        Text(
+          "View on Map",
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+  ),
+  const SizedBox(height: 12),
+],
           Row(
             children: [
               Icon(Icons.info_outline, size: 18, color: Color(0xFF085899)),

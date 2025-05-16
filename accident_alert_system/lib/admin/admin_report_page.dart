@@ -192,13 +192,14 @@ class _AdminReportPageState extends State<AdminReportPage> {
     }
   }
 
-  // Toggle the assigned cases filter when the button is pressed
   void _showAssignedCases() {
-    setState(() {
-      _isLoading = true;
-    });
-    _setupCasesListener();
-  }
+  setState(() {
+    _selectedDate = null;  // <-- This is the missing part!
+    _isLoading = true;
+  });
+  _setupCasesListener();
+}
+
 
 Widget _buildCaseCard(Map<String, dynamic> caseData) {
   return GestureDetector(

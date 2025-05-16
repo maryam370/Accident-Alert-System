@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:accident_alert_system/ambulance/status_page.dart';
 
 class AmbulanceHomePage extends StatefulWidget {
@@ -225,6 +226,22 @@ class _AmbulanceDashboardState extends State<AmbulanceDashboard> {
       });
     });
   }
+   Future<void> _openMap(String lat, String lon) async {
+  final Uri googleMapsUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+
+  try {
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(
+        googleMapsUrl,
+        mode: LaunchMode.externalApplication, // <-- Add this!
+      );
+    } else {
+      throw 'Could not launch map URL';
+    }
+  } catch (e) {
+    print("Error launching map: $e");
+  }
+}
 
   Widget _buildNotificationCard(Map<String, dynamic> notification) {
     final victim = notification['victim'];
@@ -320,10 +337,10 @@ class _AmbulanceDashboardState extends State<AmbulanceDashboard> {
     ),
   ),
   OutlinedButton(
-    onPressed: () async {
-      // final lat = location['latitude'].toString();
-      // final lon = location['longitude'].toString();
-      // await _openMap(lat, lon);
+     onPressed: () async {
+      final lat = location['latitude'].toString();
+      final lon = location['longitude'].toString();
+      await _openMap(lat, lon);
     },
     style: OutlinedButton.styleFrom(
       foregroundColor: const Color.fromARGB(255, 8, 88, 153),

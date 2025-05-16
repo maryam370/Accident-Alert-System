@@ -287,8 +287,24 @@ class _UsersPageState extends State<UsersPage> {
       passwordController.text.isEmpty ||
       selectedRole == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Please fill all required fields')),
-    );
+  SnackBar(
+    content: Text(
+      'Please fill all required fields',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    backgroundColor: Colors.redAccent,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    duration: Duration(seconds: 3),
+    margin: EdgeInsets.all(16),
+  ),
+);
+
     return;
   }
 
@@ -347,10 +363,26 @@ class _UsersPageState extends State<UsersPage> {
         });
         break;
     }
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text(
+      'Account created successfully!',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.green,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    duration: Duration(seconds: 3),
+    margin: EdgeInsets.all(16),
+  ),
+);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Account created successfully!')),
-    );
 
     // Clear form
     nameController.clear();
@@ -639,8 +671,25 @@ class _HospitalUsersListState extends State<HospitalUsersList>  {
           Navigator.pop(context);
           setState(() {});
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hospital updated successfully!')),
-          );
+  SnackBar(
+    content: Text(
+      'Hospital updated successfully!',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.teal,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
         },
         child: const Text('Save'),
       ),
@@ -707,34 +756,80 @@ class _PoliceUsersListState extends State<PoliceUsersList> {
             final email = police['contactEmail'] ?? '';
             final regionServed = police['regionServed'] ?? '';
 
-            return Card(
+            return Container(
               margin: EdgeInsets.only(bottom: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.lightBlue[50],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Name: $name',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      name,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.blueAccent),
                     ),
-                    SizedBox(height: 8),
-                    Text('Phone Number: $phoneNumber'),
-                    Text('Email: $email'),
-                    Text('Region Served: $regionServed'),
-                    SizedBox(height: 16),
+                    SizedBox(height: 12),
                     Row(
                       children: [
-                        ElevatedButton(
-                          onPressed: () => _editPolice(context, policeId, police),
-                          child: Text('Edit'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                        ),
+                        Icon(Icons.phone, size: 18, color: Colors.grey),
                         SizedBox(width: 8),
-                        ElevatedButton(
+                        Text(phoneNumber),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.email, size: 18, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text(email),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 18, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Expanded(child: Text(regionServed)),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _editPolice(context, policeId, police),
+                          icon: Icon(Icons.edit, size: 18),
+                          label: Text('Edit'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 2,
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        ElevatedButton.icon(
                           onPressed: () => _deletePolice(context, policeId),
-                          child: Text('Delete'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          icon: Icon(Icons.delete, size: 18),
+                          label: Text('Delete'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 2,
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          ),
                         ),
                       ],
                     ),
@@ -751,18 +846,32 @@ class _PoliceUsersListState extends State<PoliceUsersList> {
   Future<void> _deletePolice(BuildContext context, String policeId) async {
     try {
       await _firestore.collection('police_info').doc(policeId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Police department deleted successfully!')),
-      );
+     ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text(
+      'Police department deleted successfully!',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.deepOrange,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete police department: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete police department: $e')));
     }
   }
 
-  Future<void> _editPolice(
-      BuildContext context, String policeId, Map<String, dynamic> policeData) async {
+  Future<void> _editPolice(BuildContext context, String policeId, Map<String, dynamic> policeData) async {
     final nameController = TextEditingController(text: policeData['name']);
     final phoneController = TextEditingController(text: policeData['phoneNumber']);
     final emailController = TextEditingController(text: policeData['contactEmail']);
@@ -776,30 +885,15 @@ class _PoliceUsersListState extends State<PoliceUsersList> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(labelText: 'Name'),
-                ),
-                TextField(
-                  controller: phoneController,
-                  decoration: InputDecoration(labelText: 'Phone Number'),
-                ),
-                TextField(
-                  controller: emailController,
-                  decoration: InputDecoration(labelText: 'Contact Email'),
-                ),
-                TextField(
-                  controller: regionController,
-                  decoration: InputDecoration(labelText: 'Region Served'),
-                ),
+                TextField(controller: nameController, decoration: InputDecoration(labelText: 'Name')),
+                TextField(controller: phoneController, decoration: InputDecoration(labelText: 'Phone Number')),
+                TextField(controller: emailController, decoration: InputDecoration(labelText: 'Contact Email')),
+                TextField(controller: regionController, decoration: InputDecoration(labelText: 'Region Served')),
               ],
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
             TextButton(
               onPressed: () async {
                 await _firestore.collection('police_info').doc(policeId).update({
@@ -809,12 +903,28 @@ class _PoliceUsersListState extends State<PoliceUsersList> {
                   'regionServed': regionController.text.trim(),
                 });
 
-                setState(() {}); // Refresh UI immediately
+                setState(() {});
                 Navigator.pop(context);
-
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Police department updated successfully!')),
-                );
+  SnackBar(
+    content: Text(
+      'Police department updated successfully!',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.deepOrange,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
               },
               child: Text('Save'),
             ),
@@ -861,34 +971,80 @@ class _AmbulanceUsersListState extends State<AmbulanceUsersList> {
             final email = ambulance['contactEmail'] ?? '';
             final serviceArea = ambulance['serviceArea'] ?? '';
 
-            return Card(
+            return Container(
               margin: EdgeInsets.only(bottom: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.lightBlue[50],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Name: $name',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      name,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.blueAccent),
                     ),
-                    SizedBox(height: 8),
-                    Text('Phone Number: $phoneNumber'),
-                    Text('Email: $email'),
-                    Text('Service Area: $serviceArea'),
-                    SizedBox(height: 16),
+                    SizedBox(height: 12),
                     Row(
                       children: [
-                        ElevatedButton(
-                          onPressed: () => _editAmbulance(context, ambulanceId, ambulance),
-                          child: Text('Edit'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                        ),
+                        Icon(Icons.phone, size: 18, color: Colors.grey),
                         SizedBox(width: 8),
-                        ElevatedButton(
+                        Text(phoneNumber),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.email, size: 18, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text(email),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.local_hospital, size: 18, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Expanded(child: Text(serviceArea)),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _editAmbulance(context, ambulanceId, ambulance),
+                          icon: Icon(Icons.edit, size: 18),
+                          label: Text('Edit'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 2,
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        ElevatedButton.icon(
                           onPressed: () => _deleteAmbulance(context, ambulanceId),
-                          child: Text('Delete'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          icon: Icon(Icons.delete, size: 18),
+                          label: Text('Delete'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 2,
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          ),
                         ),
                       ],
                     ),
@@ -906,12 +1062,27 @@ class _AmbulanceUsersListState extends State<AmbulanceUsersList> {
     try {
       await _firestore.collection('ambulance_info').doc(ambulanceId).delete();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ambulance service deleted successfully!')),
-      );
+  SnackBar(
+    content: Text(
+      'Ambulance service deleted successfully!',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.deepOrange,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete ambulance service: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete ambulance service: $e')));
     }
   }
 
@@ -933,30 +1104,15 @@ class _AmbulanceUsersListState extends State<AmbulanceUsersList> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(labelText: 'Name'),
-                ),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: InputDecoration(labelText: 'Phone Number'),
-                ),
-                TextFormField(
-                  controller: emailController,
-                  decoration: InputDecoration(labelText: 'Contact Email'),
-                ),
-                TextFormField(
-                  controller: serviceAreaController,
-                  decoration: InputDecoration(labelText: 'Service Area'),
-                ),
+                TextFormField(controller: nameController, decoration: InputDecoration(labelText: 'Name')),
+                TextFormField(controller: phoneController, decoration: InputDecoration(labelText: 'Phone Number')),
+                TextFormField(controller: emailController, decoration: InputDecoration(labelText: 'Contact Email')),
+                TextFormField(controller: serviceAreaController, decoration: InputDecoration(labelText: 'Service Area')),
               ],
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
             TextButton(
               onPressed: () async {
                 await _firestore.collection('ambulance_info').doc(ambulanceId).update({
@@ -966,12 +1122,28 @@ class _AmbulanceUsersListState extends State<AmbulanceUsersList> {
                   'serviceArea': serviceAreaController.text.trim(),
                 });
 
-                setState(() {}); // Refresh the widget
+                setState(() {});
                 Navigator.pop(context);
-
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Ambulance service updated successfully!')),
-                );
+  SnackBar(
+    content: Text(
+      'Ambulance service updated successfully!',
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+      ),
+    ),
+    backgroundColor: Colors.deepOrange,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    margin: EdgeInsets.all(16),
+    duration: Duration(seconds: 3),
+  ),
+);
+
               },
               child: Text('Save'),
             ),
