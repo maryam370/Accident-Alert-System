@@ -373,42 +373,55 @@ void _showNotificationDialog(RemoteMessage message) {
   }
 
 Future<void> _saveAccidentToFirestore() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-      final location = {
-        'latitude': _locationData?.latitude ?? 0.0, 
-        'longitude': _locationData?.longitude ?? 0.0
-      };
+    final location = {
+      'latitude': _locationData?.latitude ?? 0.0,
+      'longitude': _locationData?.longitude ?? 0.0,
+    };
 
-      // Create accident document
-      final accidentRef = await _firestore.collection('accidents').add({
-        'userId': user.uid,
-        'location': location,
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'detected',
-        'assignedAmbulanceId': '',
-        'assignedHospitalId': '',
-      });
+    // 🔹 Step 1: Get all hospital users
+    final hospitalSnapshot = await _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'Hospital')
+        .get();
 
-      _currentAccidentId = accidentRef.id;
-      
-      // Start listening for status updates
-      _setupAccidentStatusListener();
-
-      // Store notification data for responders
-      await _storeNotificationData(
-        accidentId: accidentRef.id,
-        userId: user.uid,
-        location: location,
-      );
-
-      setState(() {}); // Trigger UI rebuild
-    } catch (e) {
-      print('Error saving accident: $e');
+    // 🔹 Step 2: Randomly select one hospital
+    String assignedHospitalId = '';
+    if (hospitalSnapshot.docs.isNotEmpty) {
+      final random = math.Random();
+      final selected = hospitalSnapshot.docs[
+          random.nextInt(hospitalSnapshot.docs.length)];
+      assignedHospitalId = selected.id;
     }
+
+    final accidentRef = await _firestore.collection('accidents').add({
+      'userId': user.uid,
+      'location': location,
+      'timestamp': FieldValue.serverTimestamp(),
+      'status': 'detected',
+      'assignedAmbulanceId': '', 
+      'assignedHospitalId': assignedHospitalId,
+    });
+
+    _currentAccidentId = accidentRef.id;
+
+    _setupAccidentStatusListener();
+
+    await _storeNotificationData(
+      accidentId: accidentRef.id,
+      userId: user.uid,
+      location: location,
+    );
+
+    setState(() {});
+  } catch (e) {
+    print('Error saving accident: $e');
   }
+}
+
   void _setupAccidentStatusListener() {
     if (_currentAccidentId == null) return;
 
@@ -422,15 +435,12 @@ Future<void> _saveAccidentToFirestore() async {
       if (snapshot.exists) {
         final status = snapshot.data()?['status'] ?? 'detected';
         
-        // Only send notification if status changed
         if (status != lastStatus) {
           lastStatus = status;
           
-          // Update UI
           _showStatusUpdate(status);
           setState(() {});
           
-          // Send push notification for this status update
           await _sendStatusNotification(status);
         }
       }
